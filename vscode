@@ -1,0 +1,78 @@
+ #!/bin/bash
+
+# Define colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Print banner
+print_banner() {
+    echo -e "${CYAN}┌─────────────────────────────────────────────────┐${NC}"
+    echo -e "${CYAN}│                                                 │${NC}"
+    echo -e "${CYAN}│${NC}             ${GREEN}Welcome to VS Code Installer${NC}             ${CYAN}│${NC}"
+    echo -e "${CYAN}│${NC}                 ${YELLOW}Script by Mahesh Technicals${NC}          ${CYAN}│${NC}"
+    echo -e "${CYAN}│                                                 │${NC}"
+    echo -e "${CYAN}└─────────────────────────────────────────────────┘${NC}"
+}
+
+# Install VS Code
+install_vscode() {
+    local download_link
+
+    # Check system architecture
+    case $(uname -m) in
+        x86_64) download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64" ;;
+        armv7l) download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-armhf" ;;
+        aarch64) download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-arm64" ;;
+        *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;;
+    esac
+
+    # Download and install Visual Studio Code
+    echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
+    echo -e "${YELLOW}│${NC}          Downloading Visual Studio Code...       ${YELLOW}│${NC}"
+    echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
+    wget -qO /tmp/vscode.deb "$download_link" && \
+    echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}" && \
+    echo -e "${YELLOW}│${NC}          Installing Visual Studio Code...        ${YELLOW}│${NC}" && \
+    echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}" && \
+    sudo dpkg -i /tmp/vscode.deb && \
+    rm /tmp/vscode.deb && \
+    echo -e "${GREEN}┌─────────────────────────────────────────────────┐${NC}" && \
+    echo -e "${GREEN}│${NC}     Visual Studio Code installed successfully!    ${GREEN}│${NC}" && \
+    echo -e "${GREEN}└─────────────────────────────────────────────────┘${NC}"
+}
+
+# Uninstall VS Code
+uninstall_vscode() {
+    echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
+    echo -e "${YELLOW}│${NC}        Uninstalling Visual Studio Code...        ${YELLOW}│${NC}"
+    echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
+    sudo apt-get remove code && \
+    sudo apt-get autoremove && \
+    echo -e "${GREEN}┌─────────────────────────────────────────────────┐${NC}" && \
+    echo -e "${GREEN}│${NC}   Visual Studio Code uninstalled successfully!   ${GREEN}│${NC}" && \
+    echo -e "${GREEN}└─────────────────────────────────────────────────┘${NC}"
+}
+
+# Main function
+main() {
+    print_banner
+    echo -e "${CYAN}┌─────────────────────────────────────────────────┐${NC}"
+    echo -e "${CYAN}│${NC}                   ${CYAN}Choose an option:${NC}                   ${CYAN}│${NC}"
+    echo -e "${CYAN}│${NC}      ${CYAN}1.${NC} Install VS Code                         ${CYAN}│${NC}"
+    echo -e "${CYAN}│${NC}      ${CYAN}2.${NC} Uninstall VS Code                       ${CYAN}│${NC}"
+    echo -e "${CYAN}└─────────────────────────────────────────────────┘${NC}"
+
+    read -p "${CYAN}Enter your choice: ${NC}" choice
+
+    case $choice in
+        1) install_vscode ;;
+        2) uninstall_vscode ;;
+        *) echo -e "${RED}Invalid choice. Exiting...${NC}" >&2; exit 1 ;;
+    esac
+}
+
+# Run main function
+main
+
