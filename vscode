@@ -1,4 +1,4 @@
- #!/bin/bash
+#!/bin/bash
 
 # Define colors
 GREEN='\033[0;32m'
@@ -19,17 +19,30 @@ print_banner() {
 # Install VS Code
 install_vscode() {
     local download_link
+    local arch=$(uname -m)
 
-    # Check system architecture
-    case $(uname -m) in
-        x86_64) download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64" ;;
-        armv7l) download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-armhf" ;;
-        aarch64) download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-arm64" ;;
-        *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;;
+    case $arch in
+        x86_64) 
+            download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
+            arch_msg="x86_64 (64-bit)"
+            ;;
+        armv7l) 
+            download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-armhf"
+            arch_msg="ARM (32-bit)"
+            ;;
+        aarch64) 
+            download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-arm64"
+            arch_msg="ARM (64-bit)"
+            ;;
+        *) 
+            echo "Unsupported architecture: $arch" >&2
+            exit 1 
+            ;;
     esac
 
     # Download and install Visual Studio Code
     echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
+    echo -e "${YELLOW}│${NC}       Found architecture: $arch_msg              ${YELLOW}│${NC}"
     echo -e "${YELLOW}│${NC}          Downloading Visual Studio Code...       ${YELLOW}│${NC}"
     echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
     wget -qO /tmp/vscode.deb "$download_link" && \
@@ -75,4 +88,3 @@ main() {
 
 # Run main function
 main
-
