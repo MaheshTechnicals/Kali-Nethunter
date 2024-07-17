@@ -2,7 +2,7 @@
 
 # Script name: ROM Build Setup
 # Author: Mahesh Technicals
-
+## For UBUNTU 22.04 LTS ONLY
 echo "==================================================================="
 echo "                  ROM Build Setup - Mahesh Technicals                "
 echo "==================================================================="
