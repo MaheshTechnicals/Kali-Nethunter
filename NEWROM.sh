@@ -4,7 +4,7 @@
 # Author: Mahesh Technicals
 ## For UBUNTU 22.04 LTS ONLY
 echo "==================================================================="
-echo "                  ROM Build Setup - Mahesh Technicals                "
+echo "                  ROM Build Setup (ubuntu 22.04)- Mahesh Technicals                "
 echo "==================================================================="
 
 echo "Installing required packages..."
