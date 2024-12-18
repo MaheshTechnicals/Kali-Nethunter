@@ -4,6 +4,7 @@
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
+RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Print banner
@@ -45,10 +46,19 @@ install_vscode() {
     echo -e "${YELLOW}│${NC}       Found architecture: $arch_msg              ${YELLOW}│${NC}"
     echo -e "${YELLOW}│${NC}          Downloading Visual Studio Code...       ${YELLOW}│${NC}"
     echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
-    wget -qO /tmp/vscode.deb "$download_link" && \
-    echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}" && \
-    echo -e "${YELLOW}│${NC}          Installing Visual Studio Code...        ${YELLOW}│${NC}" && \
-    echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}" && \
+    
+    # Ensure pv is installed for progress monitoring
+    if ! command -v pv &>/dev/null; then
+        echo -e "${RED}pv command not found, installing it...${NC}"
+        sudo apt-get install pv
+    fi
+    
+    # Use wget with pv for progress
+    wget -qO /tmp/vscode.deb "$download_link" --show-progress --progress=bar:force 2>&1 | tee /dev/tty | grep --line-buffered "%" | awk '{print $2 " " $3 " " $4}'
+
+    echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
+    echo -e "${YELLOW}│${NC}          Installing Visual Studio Code...        ${YELLOW}│${NC}"
+    echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
     sudo dpkg -i /tmp/vscode.deb && \
     rm /tmp/vscode.deb && \
     echo -e "${GREEN}┌─────────────────────────────────────────────────┐${NC}" && \
