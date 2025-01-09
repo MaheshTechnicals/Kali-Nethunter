@@ -34,15 +34,24 @@ install_java() {
         exit 1
     fi
 
+    # Create /usr/lib/jvm directory if it doesn't exist
+    sudo mkdir -p /usr/lib/jvm
+
     # Extract and install Java
     echo -e "${CYAN}Extracting Java...${RESET}"
     sudo tar -xzf openjdk-23.tar.gz -C /usr/lib/jvm
+
+    # Set up Java alternatives
+    echo -e "${CYAN}Setting up Java alternatives...${RESET}"
     sudo update-alternatives --install /usr/bin/java /usr/bin/java /usr/lib/jvm/jdk-23/bin/java 1
     sudo update-alternatives --set java /usr/lib/jvm/jdk-23/bin/java
 
     # Clean up
     rm -f openjdk-23.tar.gz
     echo -e "${CYAN}Java 23 has been installed successfully!${RESET}"
+
+    # Ensure that Java is in the path
+    sudo update-alternatives --config java
 }
 
 # Function to Install Burp Suite
