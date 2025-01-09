@@ -82,8 +82,20 @@ if [[ $EUID -eq 0 ]]; then
     # Extract the JDK package
     echo "Extracting Java 23..."
     tar -xvzf "$JAVA_PACKAGE"
-    mv jdk-23 /opt/
-    
+    if [[ $? -ne 0 ]]; then
+        echo "Error: Failed to extract OpenJDK 23."
+        exit 1
+    fi
+
+    # Move extracted directory (it may have a different name, ensure it's correct)
+    JDK_DIR=$(ls -d /tmp/jdk-*/)
+    mv "$JDK_DIR" /opt/
+
+    # Remove old symbolic links if they exist
+    echo "Removing existing symbolic links for java and javac..."
+    rm -f /usr/bin/java
+    rm -f /usr/bin/javac
+
     # Create symbolic links for java and javac
     ln -s /opt/jdk-23/bin/java /usr/bin/java
     ln -s /opt/jdk-23/bin/javac /usr/bin/javac
