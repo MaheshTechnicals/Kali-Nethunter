@@ -7,6 +7,9 @@ YELLOW='\033[0;33m'
 CYAN='\033[0;36m'
 RESET='\033[0m'
 
+# Author Info
+AUTHOR="${CYAN}Script Author: Mahesh Technicals${RESET}"
+
 # Function to Install Burp Suite
 install_burp() {
     echo -e "${GREEN}Installing Burp Suite...${RESET}"
@@ -54,23 +57,34 @@ install_burp() {
     echo -e "${YELLOW}burp${RESET}"
     echo -e "${CYAN}-------------------------------------------------${RESET}"
 
-    # Optionally, you can offer to open Burp Suite here manually if desired
+    # Optionally, you can offer to open Burp after installation (if desired)
     # Uncomment the next line to auto-launch Burp after installation (if you want this option)
     # burp
 }
 
-# Function to Uninstall Burp Suite
+# Function to Uninstall Burp Suite and Java
 uninstall_burp() {
     echo -e "${RED}Uninstalling Burp Suite...${RESET}"
     rm -rf /root/Burp_Suite
     rm -f /usr/bin/burp
-    echo -e "${GREEN}Burp Suite has been uninstalled.${RESET}"
+
+    # Uninstall Java
+    echo -e "${RED}Uninstalling Java...${RESET}"
+    if [ -d "/usr/lib/jvm/jdk-23" ]; then
+        rm -rf /usr/lib/jvm/jdk-23
+        echo -e "${CYAN}Java 23 has been uninstalled.${RESET}"
+    else
+        echo -e "${YELLOW}Java 23 is not installed.${RESET}"
+    fi
+
+    echo -e "${GREEN}Burp Suite and Java have been uninstalled.${RESET}"
 }
 
 # UI - Display options to the user
 echo -e "${CYAN}#######################################"
 echo -e "${CYAN}           Burp Suite Installer        "
 echo -e "${CYAN}#######################################"
+echo -e "${AUTHOR}"
 echo -e "${GREEN}Please choose an option:${RESET}"
 echo -e "${YELLOW}1. Install Burp Suite${RESET}"
 echo -e "${RED}2. Uninstall Burp Suite${RESET}"
