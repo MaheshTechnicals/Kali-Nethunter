@@ -83,6 +83,8 @@ if [[ $EUID -eq 0 ]]; then
     echo "Extracting Java 23..."
     tar -xvzf "$JAVA_PACKAGE"
     mv jdk-23 /opt/
+    
+    # Create symbolic links for java and javac
     ln -s /opt/jdk-23/bin/java /usr/bin/java
     ln -s /opt/jdk-23/bin/javac /usr/bin/javac
 
