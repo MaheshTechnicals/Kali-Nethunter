@@ -1,113 +1,126 @@
 #!/bin/bash
 
-# Stylish Node.js Installer Script by Mahesh Technicals
-
-# Colors for UI
-GREEN="\033[1;32m"
-CYAN="\033[1;36m"
+# Colors for styling
+GREEN="\033[0;32m"
+CYAN="\033[0;36m"
 YELLOW="\033[1;33m"
-RED="\033[1;31m"
-BLUE="\033[1;34m"
+RED="\033[0;31m"
 RESET="\033[0m"
 
-# Display script header
-clear
-echo -e "${CYAN}==========================================${RESET}"
-echo -e "${GREEN}       Node.js Installer Script           ${RESET}"
-echo -e "${YELLOW}              by Mahesh Technicals         ${RESET}"
-echo -e "${CYAN}==========================================${RESET}"
+SCRIPT_NAME="Node.js Installer"
+AUTHOR="Mahesh Technicals"
 
-# Function to display options in a table format
-display_menu() {
-    echo -e "${BLUE}Choose an option:${RESET}"
-    echo -e "${GREEN}+------------------------------------+${RESET}"
-    echo -e "${GREEN}| Option | Description               |${RESET}"
-    echo -e "${GREEN}+------------------------------------+${RESET}"
-    echo -e "${YELLOW}|   1    | Install Node.js           |${RESET}"
-    echo -e "${YELLOW}|   2    | Uninstall Node.js and NVM |${RESET}"
-    echo -e "${YELLOW}|   3    | Exit                      |${RESET}"
-    echo -e "${GREEN}+------------------------------------+${RESET}"
+# Function to display the menu
+show_menu() {
+    clear
+    echo -e "${CYAN}======================================${RESET}"
+    echo -e "${GREEN}$SCRIPT_NAME${RESET}"
+    echo -e "Author: $AUTHOR"
+    echo -e "${CYAN}======================================${RESET}"
+    echo -e "${YELLOW}Select an option:${RESET}"
+    echo -e "${CYAN}1.${RESET} Install Node.js (LTS) using NVM"
+    echo -e "${CYAN}2.${RESET} Uninstall NVM and Node.js"
+    echo -e "${CYAN}3.${RESET} Exit"
+    echo -e "${CYAN}======================================${RESET}"
 }
 
 # Function to install Node.js
-install_nodejs() {
+install_node() {
     clear
-    echo -e "${CYAN}Step 1: Installing wget package...${RESET}"
+    echo -e "${CYAN}Installing wget...${RESET}"
     sudo apt update && sudo apt install -y wget
     clear
 
-    echo -e "${CYAN}Step 2: Installing NVM...${RESET}"
+    echo -e "${CYAN}Installing NVM...${RESET}"
     wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/refs/heads/master/install.sh | bash
     clear
 
-    echo -e "${CYAN}Step 3: Configuring NVM...${RESET}"
-    PROFILE_FILE=""
-    for file in ~/.bash_profile ~/.zshrc ~/.profile ~/.bashrc; do
+    echo -e "${CYAN}Configuring NVM...${RESET}"
+    PROFILE_FILES=(~/.bash_profile ~/.zshrc ~/.profile ~/.bashrc)
+    CONFIGURED_FILE=""
+    for file in "${PROFILE_FILES[@]}"; do
         if [ -f "$file" ]; then
-            PROFILE_FILE="$file"
-            echo -e "${GREEN}Profile file found: $PROFILE_FILE${RESET}"
+            echo -e "${YELLOW}Found configuration file: $file${RESET}"
+            CONFIGURED_FILE="$file"
+            {
+                echo 'export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"'
+                echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm'
+            } >>"$file"
+            source "$file"
             break
         fi
     done
 
-    if [ -n "$PROFILE_FILE" ]; then
-        echo -e "${YELLOW}Adding NVM configuration to $PROFILE_FILE...${RESET}"
-        {
-            echo 'export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"'
-            echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm'
-        } >> "$PROFILE_FILE"
-        echo -e "${CYAN}Sourcing $PROFILE_FILE...${RESET}"
-        source "$PROFILE_FILE"
-    else
-        echo -e "${RED}No profile file found. Please add the NVM configuration manually.${RESET}"
+    if [ -z "$CONFIGURED_FILE" ]; then
+        echo -e "${RED}No suitable profile file found!${RESET}"
+        exit 1
     fi
-    clear
 
-    echo -e "${CYAN}Step 4: Installing Node.js LTS version...${RESET}"
+    echo -e "${CYAN}Installing Node.js (LTS)...${RESET}"
     nvm install --lts
     clear
 
-    echo -e "${CYAN}Installation complete!${RESET}"
-    echo -e "${GREEN}Node.js version: $(node -v)${RESET}"
-    echo -e "${GREEN}npm version: $(npm -v)${RESET}"
-    if [ -n "$PROFILE_FILE" ]; then
-        echo -e "${YELLOW}NVM was configured in: $PROFILE_FILE${RESET}"
-    fi
+    echo -e "${GREEN}Installation complete!${RESET}"
+    echo -e "Node.js version: ${GREEN}$(node -v)${RESET}"
+    echo -e "npm version: ${GREEN}$(npm -v)${RESET}"
+    echo -e "NVM was configured in: ${YELLOW}$CONFIGURED_FILE${RESET}"
 }
 
 # Function to uninstall NVM and Node.js
 uninstall_all() {
     clear
     echo -e "${CYAN}Uninstalling NVM and Node.js...${RESET}"
+
+    # Remove the NVM directory
     rm -rf "$HOME/.nvm"
-    for file in ~/.bash_profile ~/.zshrc ~/.profile ~/.bashrc; do
+
+    # Remove NVM references from profile files
+    PROFILE_FILES=(~/.bash_profile ~/.zshrc ~/.profile ~/.bashrc)
+    for file in "${PROFILE_FILES[@]}"; do
         if [ -f "$file" ]; then
-            sed -i '/export NVM_DIR/d' "$file"
+            echo -e "${YELLOW}Cleaning NVM configuration from $file...${RESET}"
+            sed -i '/NVM_DIR/d' "$file"
             sed -i '/nvm.sh/d' "$file"
         fi
     done
-    echo -e "${RED}NVM and Node.js have been uninstalled.${RESET}"
+
+    # Reload the shell configuration
+    echo -e "${CYAN}Reloading your shell configuration...${RESET}"
+    if [ "$SHELL" == "/bin/bash" ]; then
+        source ~/.bashrc 2>/dev/null
+    elif [ "$SHELL" == "/bin/zsh" ]; then
+        source ~/.zshrc 2>/dev/null
+    fi
+
+    # Confirm uninstallation
+    if command -v nvm &>/dev/null; then
+        echo -e "${RED}NVM is still detected in your environment. Please restart your terminal to fully remove it.${RESET}"
+    else
+        echo -e "${GREEN}NVM and Node.js have been completely uninstalled.${RESET}"
+    fi
 }
 
-# Main script logic
+# Main script loop
 while true; do
-    display_menu
-    read -p "$(echo -e "${CYAN}Enter your choice (1/2/3): ${RESET}")" choice
+    show_menu
+    read -rp "Enter your choice: " choice
     case $choice in
-        1)
-            install_nodejs
-            break
-            ;;
-        2)
-            uninstall_all
-            break
-            ;;
-        3)
-            echo -e "${YELLOW}Exiting script. Goodbye!${RESET}"
-            break
-            ;;
-        *)
-            echo -e "${RED}Invalid choice. Please try again.${RESET}"
-            ;;
+    1)
+        install_node
+        break
+        ;;
+    2)
+        uninstall_all
+        break
+        ;;
+    3)
+        echo -e "${CYAN}Exiting...${RESET}"
+        exit 0
+        ;;
+    *)
+        echo -e "${RED}Invalid choice! Please try again.${RESET}"
+        sleep 2
+        ;;
     esac
 done
+
