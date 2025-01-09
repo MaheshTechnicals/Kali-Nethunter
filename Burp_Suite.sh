@@ -23,9 +23,9 @@ if [[ $EUID -eq 0 ]]; then
         # Get major version number
         JAVA_MAJOR_VERSION=$(echo "$JAVA_VERSION" | awk -F. '{print $1}')
         
-        # Check if the version is less than 17
-        if [[ "$JAVA_MAJOR_VERSION" -lt 17 ]]; then
-            echo "Java version $JAVA_VERSION is installed but is lower than Java 17. Uninstalling old Java version..."
+        # Check if the version is less than 23
+        if [[ "$JAVA_MAJOR_VERSION" -lt 23 ]]; then
+            echo "Java version $JAVA_VERSION is installed but is lower than Java 23. Uninstalling old Java version..."
             
             # Uninstall older Java versions
             if [ -f /etc/debian_version ]; then
@@ -51,27 +51,27 @@ if [[ $EUID -eq 0 ]]; then
             echo "Java version $JAVA_VERSION is already installed and meets the minimum requirement."
         fi
     else
-        echo "Java is not installed. Installing Java 17..."
+        echo "Java is not installed. Installing Java 23..."
     fi
 
-    # Install Java 17 (latest version)
+    # Install Java 23 (latest version)
     if [ -f /etc/debian_version ]; then
         # For Debian/Ubuntu-based distributions
-        apt update && apt install -y openjdk-17-jre
+        apt update && apt install -y openjdk-23-jre
     elif [ -f /etc/redhat-release ]; then
         # For Red Hat/CentOS/Fedora-based distributions
         if command -v dnf &> /dev/null; then
             # Fedora, RHEL 8+, CentOS 8+
-            dnf install -y java-17-openjdk
+            dnf install -y java-23-openjdk
         elif command -v yum &> /dev/null; then
             # Older CentOS/RHEL
-            yum install -y java-17-openjdk
+            yum install -y java-23-openjdk
         fi
     elif [ -f /etc/os-release ] && grep -q "openSUSE" /etc/os-release; then
         # For openSUSE
-        zypper install -y java-17-openjdk
+        zypper install -y java-23-openjdk
     else
-        echo "Unsupported Linux distribution. Please install Java 17 manually."
+        echo "Unsupported Linux distribution. Please install Java 23 manually."
         exit 1
     fi
 
@@ -80,7 +80,7 @@ if [[ $EUID -eq 0 ]]; then
         echo "Error: Java installation failed."
         exit 1
     else
-        echo "Java 17 has been successfully installed."
+        echo "Java 23 has been successfully installed."
     fi
 
     # Check if wget is installed
