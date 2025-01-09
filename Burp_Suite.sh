@@ -54,34 +54,41 @@ if [[ $EUID -eq 0 ]]; then
         echo "Java is not installed. Installing Java 23..."
     fi
 
-    # Install Java 23 (latest version)
-    if [ -f /etc/debian_version ]; then
-        # For Debian/Ubuntu-based distributions
-        apt update && apt install -y openjdk-23-jre
-    elif [ -f /etc/redhat-release ]; then
-        # For Red Hat/CentOS/Fedora-based distributions
-        if command -v dnf &> /dev/null; then
-            # Fedora, RHEL 8+, CentOS 8+
-            dnf install -y java-23-openjdk
-        elif command -v yum &> /dev/null; then
-            # Older CentOS/RHEL
-            yum install -y java-23-openjdk
-        fi
-    elif [ -f /etc/os-release ] && grep -q "openSUSE" /etc/os-release; then
-        # For openSUSE
-        zypper install -y java-23-openjdk
+    # Detect system architecture
+    ARCH=$(uname -m)
+    
+    if [[ "$ARCH" == "x86_64" ]]; then
+        # For 64-bit architecture (x86_64)
+        JAVA_PACKAGE="openjdk-23.0.1_linux-x64_bin.tar.gz"
+        JAVA_URL="https://download.java.net/java/GA/jdk23.0.1/c28985cbf10d4e648e4004050f8781aa/11/GPL/$JAVA_PACKAGE"
+    elif [[ "$ARCH" == "aarch64" ]]; then
+        # For ARM 64-bit architecture (aarch64)
+        JAVA_PACKAGE="openjdk-23.0.1_linux-aarch64_bin.tar.gz"
+        JAVA_URL="https://download.java.net/java/GA/jdk23.0.1/c28985cbf10d4e648e4004050f8781aa/11/GPL/$JAVA_PACKAGE"
     else
-        echo "Unsupported Linux distribution. Please install Java 23 manually."
+        echo "Unsupported architecture: $ARCH"
         exit 1
     fi
 
-    # Verify Java installation
-    if ! command -v java &> /dev/null; then
-        echo "Error: Java installation failed."
+    # Download the appropriate Java 23 package based on architecture
+    echo "Downloading Java 23 for $ARCH..."
+    cd /tmp
+    wget "$JAVA_URL"
+    if [[ $? -ne 0 ]]; then
+        echo "Error: Failed to download OpenJDK 23."
         exit 1
-    else
-        echo "Java 23 has been successfully installed."
     fi
+
+    # Extract the JDK package
+    echo "Extracting Java 23..."
+    tar -xvzf "$JAVA_PACKAGE"
+    mv jdk-23 /opt/
+    ln -s /opt/jdk-23/bin/java /usr/bin/java
+    ln -s /opt/jdk-23/bin/javac /usr/bin/javac
+
+    # Verify Java installation
+    JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
+    echo "Java version $JAVA_VERSION has been successfully installed."
 
     # Check if wget is installed
     if ! command -v wget &> /dev/null; then
