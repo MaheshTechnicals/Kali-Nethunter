@@ -57,8 +57,8 @@ install_node() {
                 echo 'export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"'
                 echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm'
             } >>"$file"
-            # Sourcing the file in the background for non-blocking execution
-            (source "$file" &)
+            # Source the file to immediately load nvm and node
+            source "$file"
             break
         fi
     done
@@ -68,6 +68,7 @@ install_node() {
         exit 1
     fi
 
+    # Install Node.js LTS
     echo -e "${CYAN}Installing Node.js (LTS)...${RESET}"
     nvm install --lts
     clear
@@ -77,7 +78,7 @@ install_node() {
     echo -e "npm version: ${GREEN}$(npm -v)${RESET}"
     echo -e "NVM was configured in: ${YELLOW}$CONFIGURED_FILE${RESET}"
 
-    # Explicitly source the profile files to make the node command available
+    # Source the profile files explicitly to ensure node and npm are recognized in the current session
     echo -e "${CYAN}Explicitly sourcing profile files...${RESET}"
     for file in "${PROFILE_FILES[@]}"; do
         if [ -f "$file" ]; then
