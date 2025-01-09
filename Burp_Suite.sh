@@ -87,9 +87,20 @@ if [[ $EUID -eq 0 ]]; then
         exit 1
     fi
 
-    # Move extracted directory (it may have a different name, ensure it's correct)
-    JDK_DIR=$(ls -d /tmp/jdk-*/)
-    mv "$JDK_DIR" /opt/
+    # Verify extracted folder and move it
+    EXTRACTED_DIR=$(ls -d /tmp/jdk*/ | head -n 1)
+    if [[ -z "$EXTRACTED_DIR" ]]; then
+        echo "Error: Could not find the extracted directory."
+        exit 1
+    fi
+
+    # Move the extracted JDK directory to /opt/
+    echo "Moving Java to /opt/..."
+    mv "$EXTRACTED_DIR" /opt/
+    if [[ $? -ne 0 ]]; then
+        echo "Error: Failed to move Java directory to /opt/"
+        exit 1
+    fi
 
     # Remove old symbolic links if they exist
     echo "Removing existing symbolic links for java and javac..."
@@ -97,8 +108,8 @@ if [[ $EUID -eq 0 ]]; then
     rm -f /usr/bin/javac
 
     # Create symbolic links for java and javac
-    ln -s /opt/jdk-23/bin/java /usr/bin/java
-    ln -s /opt/jdk-23/bin/javac /usr/bin/javac
+    ln -s /opt/$(basename "$EXTRACTED_DIR")/bin/java /usr/bin/java
+    ln -s /opt/$(basename "$EXTRACTED_DIR")/bin/javac /usr/bin/javac
 
     # Verify Java installation
     JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
