@@ -57,7 +57,8 @@ install_node() {
                 echo 'export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"'
                 echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm'
             } >>"$file"
-            source "$file"
+            # Sourcing the file in the background for non-blocking execution
+            (source "$file" &)
             break
         fi
     done
@@ -76,12 +77,12 @@ install_node() {
     echo -e "npm version: ${GREEN}$(npm -v)${RESET}"
     echo -e "NVM was configured in: ${YELLOW}$CONFIGURED_FILE${RESET}"
 
-    # Source profile files silently in the background without output
-    echo -e "${CYAN}Sourcing appropriate profile files...${RESET}"
+    # Explicitly source the profile files to make the node command available
+    echo -e "${CYAN}Explicitly sourcing profile files...${RESET}"
     for file in "${PROFILE_FILES[@]}"; do
         if [ -f "$file" ]; then
-            # Source the file in the background without showing logs
-            (source "$file" &)
+            # Source the file in the foreground to update the environment
+            source "$file"
         fi
     done
 }
