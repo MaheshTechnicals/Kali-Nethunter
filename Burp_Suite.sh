@@ -61,6 +61,10 @@ install_burp() {
     # Launch Burp Suite
     echo -e "${GREEN}Opening Burp Suite...${RESET}"
     burp
+
+    # Display Java Version
+    echo -e "${CYAN}Java Version Installed:${RESET}"
+    java -version
 }
 
 # Function to Uninstall Burp Suite
