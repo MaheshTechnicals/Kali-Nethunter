@@ -57,8 +57,6 @@ install_node() {
                 echo 'export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"'
                 echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm'
             } >>"$file"
-            # Source the file to immediately load nvm and node
-            source "$file"
             break
         fi
     done
@@ -78,14 +76,19 @@ install_node() {
     echo -e "npm version: ${GREEN}$(npm -v)${RESET}"
     echo -e "NVM was configured in: ${YELLOW}$CONFIGURED_FILE${RESET}"
 
-    # Source the profile files explicitly to ensure node and npm are recognized in the current session
-    echo -e "${CYAN}Explicitly sourcing profile files...${RESET}"
-    for file in "${PROFILE_FILES[@]}"; do
-        if [ -f "$file" ]; then
-            # Source the file in the foreground to update the environment
-            source "$file"
-        fi
-    done
+    # Reload the shell and explicitly source profile files
+    echo -e "${CYAN}Reloading your shell configuration...${RESET}"
+    exec "$SHELL" --login
+
+    # Give time for the shell to reload and confirm installation
+    sleep 3
+
+    # After reloading, check if node and npm are available
+    if command -v node &>/dev/null; then
+        echo -e "${GREEN}Node.js installed successfully! Version: $(node -v)${RESET}"
+    else
+        echo -e "${RED}Node.js is still not recognized. Please restart your terminal manually.${RESET}"
+    fi
 }
 
 # Function to uninstall NVM and Node.js
@@ -108,12 +111,7 @@ uninstall_all() {
 
     # Reload the shell configuration
     echo -e "${CYAN}Reloading your shell configuration...${RESET}"
-    for file in "${PROFILE_FILES[@]}"; do
-        if [ -f "$file" ]; then
-            # Source the file in the background without showing logs
-            (source "$file" &)
-        fi
-    done
+    exec "$SHELL" --login
 
     # Confirm uninstallation
     if command -v nvm &>/dev/null; then
