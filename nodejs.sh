@@ -76,14 +76,12 @@ install_node() {
     echo -e "npm version: ${GREEN}$(npm -v)${RESET}"
     echo -e "NVM was configured in: ${YELLOW}$CONFIGURED_FILE${RESET}"
 
-    # Ensure the shell configuration files are sourced
+    # Source profile files silently in the background without output
     echo -e "${CYAN}Sourcing appropriate profile files...${RESET}"
     for file in "${PROFILE_FILES[@]}"; do
         if [ -f "$file" ]; then
-            source "$file"
-            echo -e "${GREEN}Sourced $file successfully!${RESET}"
-        else
-            echo -e "${RED}$file not found! Please manually source it.${RESET}"
+            # Source the file in the background without showing logs
+            (source "$file" &)
         fi
     done
 }
@@ -110,8 +108,8 @@ uninstall_all() {
     echo -e "${CYAN}Reloading your shell configuration...${RESET}"
     for file in "${PROFILE_FILES[@]}"; do
         if [ -f "$file" ]; then
-            source "$file"
-            echo -e "${GREEN}Sourced $file successfully!${RESET}"
+            # Source the file in the background without showing logs
+            (source "$file" &)
         fi
     done
 
