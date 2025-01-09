@@ -18,6 +18,11 @@ install_burp() {
         # Refer to previous code for installing Java
     fi
 
+    # Display the installed Java version
+    echo -e "${CYAN}Java Version Installed:${RESET}"
+    java -version
+    echo -e "${CYAN}-------------------------------------------------${RESET}"
+
     # Download Burp Suite Community Latest Version
     echo -e "${YELLOW}Downloading Burp Suite Community...${RESET}"
     Link="https://portswigger-cdn.net/burp/releases/download?product=community&type=jar"
@@ -44,18 +49,14 @@ install_burp() {
     echo "java -jar $BURP_DIR/Burp.jar" > /usr/bin/burp
     chmod +x /usr/bin/burp
 
-    # Check if running in headless mode (no X11 display)
-    if [ -z "$DISPLAY" ]; then
-        echo -e "${YELLOW}No X11 display detected. Running Burp Suite with xvfb...${RESET}"
-        xvfb-run java -jar $BURP_DIR/Burp.jar
-    else
-        echo -e "${GREEN}Opening Burp Suite...${RESET}"
-        burp
-    fi
+    echo -e "${CYAN}Burp Suite has been successfully installed!${RESET}"
+    echo -e "${GREEN}To start Burp Suite, run the following command:${RESET}"
+    echo -e "${YELLOW}burp${RESET}"
+    echo -e "${CYAN}-------------------------------------------------${RESET}"
 
-    # Display Java Version
-    echo -e "${CYAN}Java Version Installed:${RESET}"
-    java -version
+    # Optionally, you can offer to open Burp Suite here manually if desired
+    # Uncomment the next line to auto-launch Burp after installation (if you want this option)
+    # burp
 }
 
 # Function to Uninstall Burp Suite
