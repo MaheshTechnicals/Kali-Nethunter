@@ -67,9 +67,12 @@ install_nodejs() {
     nvm install --lts
     clear
 
-    echo -e "${CYAN}Installation complete! Showing installed versions:${RESET}"
+    echo -e "${CYAN}Installation complete!${RESET}"
     echo -e "${GREEN}Node.js version: $(node -v)${RESET}"
     echo -e "${GREEN}npm version: $(npm -v)${RESET}"
+    if [ -n "$PROFILE_FILE" ]; then
+        echo -e "${YELLOW}NVM was configured in: $PROFILE_FILE${RESET}"
+    fi
 }
 
 # Function to uninstall NVM and Node.js
