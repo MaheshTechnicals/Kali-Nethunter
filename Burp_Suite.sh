@@ -63,8 +63,17 @@ install_java() {
 install_burp() {
     echo -e "${GREEN}Installing Burp Suite...${RESET}"
 
-    # Check if Java is installed and version is 23
-    if ! command -v java &> /dev/null || [[ $(java -version 2>&1 | head -n 1 | awk '{print $3}' | tr -d '"') != "23" ]]; then
+    # Check if Java is installed and version is 23 or higher
+    if command -v java &> /dev/null; then
+        INSTALLED_VERSION=$(java -version 2>&1 | head -n 1 | awk -F '"' '{print $2}' | awk -F '.' '{print $1}')
+        if [[ $INSTALLED_VERSION -lt 23 ]]; then
+            echo -e "${YELLOW}Java version is less than 23. Installing Java 23...${RESET}"
+            install_java
+        else
+            echo -e "${GREEN}Java version $INSTALLED_VERSION is already installed. Skipping Java installation.${RESET}"
+        fi
+    else
+        echo -e "${RED}Java is not installed. Installing Java 23...${RESET}"
         install_java
     fi
 
