@@ -27,12 +27,23 @@ show_menu() {
 # Function to install Node.js
 install_node() {
     clear
-    echo -e "${CYAN}Installing wget...${RESET}"
-    sudo apt update && sudo apt install -y wget
+
+    # Check if wget is installed, if not install it
+    if ! command -v wget &>/dev/null; then
+        echo -e "${CYAN}Installing wget...${RESET}"
+        sudo apt update && sudo apt install -y wget
+    else
+        echo -e "${GREEN}wget is already installed, skipping installation.${RESET}"
+    fi
     clear
 
-    echo -e "${CYAN}Installing NVM...${RESET}"
-    wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/refs/heads/master/install.sh | bash
+    # Check if NVM is installed, if not install it
+    if ! command -v nvm &>/dev/null; then
+        echo -e "${CYAN}Installing NVM...${RESET}"
+        wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/refs/heads/master/install.sh | bash
+    else
+        echo -e "${GREEN}NVM is already installed, skipping installation.${RESET}"
+    fi
     clear
 
     echo -e "${CYAN}Configuring NVM...${RESET}"
@@ -64,6 +75,17 @@ install_node() {
     echo -e "Node.js version: ${GREEN}$(node -v)${RESET}"
     echo -e "npm version: ${GREEN}$(npm -v)${RESET}"
     echo -e "NVM was configured in: ${YELLOW}$CONFIGURED_FILE${RESET}"
+
+    # Ensure the shell configuration files are sourced
+    echo -e "${CYAN}Sourcing appropriate profile files...${RESET}"
+    for file in "${PROFILE_FILES[@]}"; do
+        if [ -f "$file" ]; then
+            source "$file"
+            echo -e "${GREEN}Sourced $file successfully!${RESET}"
+        else
+            echo -e "${RED}$file not found! Please manually source it.${RESET}"
+        fi
+    done
 }
 
 # Function to uninstall NVM and Node.js
@@ -86,11 +108,12 @@ uninstall_all() {
 
     # Reload the shell configuration
     echo -e "${CYAN}Reloading your shell configuration...${RESET}"
-    if [ "$SHELL" == "/bin/bash" ]; then
-        source ~/.bashrc 2>/dev/null
-    elif [ "$SHELL" == "/bin/zsh" ]; then
-        source ~/.zshrc 2>/dev/null
-    fi
+    for file in "${PROFILE_FILES[@]}"; do
+        if [ -f "$file" ]; then
+            source "$file"
+            echo -e "${GREEN}Sourced $file successfully!${RESET}"
+        fi
+    done
 
     # Confirm uninstallation
     if command -v nvm &>/dev/null; then
