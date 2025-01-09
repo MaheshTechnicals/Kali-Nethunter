@@ -17,24 +17,24 @@ echo "
 if [[ $EUID -eq 0 ]]; then
     # Check if java is installed
     if ! command -v java &> /dev/null; then
-        echo "Java is not installed. Installing Java..."
+        echo "Java is not installed. Installing Java 17..."
 
         # Detect Linux distribution and install Java accordingly
         if [ -f /etc/debian_version ]; then
             # For Debian/Ubuntu-based distributions
-            apt update && apt install -y openjdk-11-jre
+            apt update && apt install -y openjdk-17-jre
         elif [ -f /etc/redhat-release ]; then
             # For Red Hat/CentOS/Fedora-based distributions
             if command -v dnf &> /dev/null; then
                 # Fedora, RHEL 8+, CentOS 8+
-                dnf install -y java-11-openjdk
+                dnf install -y java-17-openjdk
             elif command -v yum &> /dev/null; then
                 # Older CentOS/RHEL
-                yum install -y java-11-openjdk
+                yum install -y java-17-openjdk
             fi
         elif [ -f /etc/os-release ] && grep -q "openSUSE" /etc/os-release; then
             # For openSUSE
-            zypper install -y java-11-openjdk
+            zypper install -y java-17-openjdk
         else
             echo "Unsupported Linux distribution. Please install Java manually."
             exit 1
@@ -45,7 +45,7 @@ if [[ $EUID -eq 0 ]]; then
             echo "Error: Java installation failed."
             exit 1
         else
-            echo "Java has been successfully installed."
+            echo "Java 17 has been successfully installed."
         fi
     else
         echo "Java is already installed."
@@ -91,3 +91,4 @@ else
     echo "Error: Please execute the command as a root user."
     exit 1
 fi
+
