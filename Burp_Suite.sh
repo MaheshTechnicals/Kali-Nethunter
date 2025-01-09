@@ -10,15 +10,48 @@ RESET='\033[0m'
 # Author Info
 AUTHOR="${CYAN}Script Author: Mahesh Technicals${RESET}"
 
+# Function to Install Java 23
+install_java() {
+    echo -e "${GREEN}Installing Java 23...${RESET}"
+
+    # Check system architecture
+    ARCH=$(uname -m)
+    
+    if [[ "$ARCH" == "x86_64" ]]; then
+        JAVA_URL="https://download.java.net/java/GA/jdk23.0.1/c28985cbf10d4e648e4004050f8781aa/11/GPL/openjdk-23.0.1_linux-x64_bin.tar.gz"
+    elif [[ "$ARCH" == "aarch64" ]]; then
+        JAVA_URL="https://download.java.net/java/GA/jdk23.0.1/c28985cbf10d4e648e4004050f8781aa/11/GPL/openjdk-23.0.1_linux-aarch64_bin.tar.gz"
+    else
+        echo -e "${RED}Unsupported architecture: $ARCH. Exiting...${RESET}"
+        exit 1
+    fi
+
+    # Download and install Java
+    echo -e "${YELLOW}Downloading Java from $JAVA_URL...${RESET}"
+    wget "$JAVA_URL" -O openjdk-23.tar.gz --progress=bar
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED}Error: Failed to download Java.${RESET}"
+        exit 1
+    fi
+
+    # Extract and install Java
+    echo -e "${CYAN}Extracting Java...${RESET}"
+    sudo tar -xzf openjdk-23.tar.gz -C /usr/lib/jvm
+    sudo update-alternatives --install /usr/bin/java /usr/bin/java /usr/lib/jvm/jdk-23/bin/java 1
+    sudo update-alternatives --set java /usr/lib/jvm/jdk-23/bin/java
+
+    # Clean up
+    rm -f openjdk-23.tar.gz
+    echo -e "${CYAN}Java 23 has been installed successfully!${RESET}"
+}
+
 # Function to Install Burp Suite
 install_burp() {
     echo -e "${GREEN}Installing Burp Suite...${RESET}"
 
     # Check if Java 23 is installed
-    if ! command -v java &> /dev/null; then
-        echo -e "${YELLOW}Java is not installed. Installing Java 23...${RESET}"
-        # [Insert Java installation steps here (same as previous script)]
-        # Refer to previous code for installing Java
+    if ! command -v java &> /dev/null || [[ $(java -version 2>&1 | head -n 1 | awk '{print $3}' | tr -d '"') != "23" ]]; then
+        install_java
     fi
 
     # Display the installed Java version
