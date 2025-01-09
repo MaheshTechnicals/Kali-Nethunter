@@ -20,55 +20,59 @@ if [[ $EUID -eq 0 ]]; then
         # Get the current Java version
         JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
         
-        # Check if the version is 17 or higher
-        if [[ $(echo "$JAVA_VERSION" | awk -F. '{print $1}') -ge 17 ]]; then
-            echo "Java version $JAVA_VERSION is already installed and meets the minimum requirement."
-        else
-            echo "Java version $JAVA_VERSION is installed but is lower than Java 17. Installing Java 17..."
-            # Install Java 17
+        # Get major version number
+        JAVA_MAJOR_VERSION=$(echo "$JAVA_VERSION" | awk -F. '{print $1}')
+        
+        # Check if the version is less than 17
+        if [[ "$JAVA_MAJOR_VERSION" -lt 17 ]]; then
+            echo "Java version $JAVA_VERSION is installed but is lower than Java 17. Uninstalling old Java version..."
+            
+            # Uninstall older Java versions
             if [ -f /etc/debian_version ]; then
                 # For Debian/Ubuntu-based distributions
-                apt update && apt install -y openjdk-17-jre
+                apt remove -y openjdk-*
             elif [ -f /etc/redhat-release ]; then
                 # For Red Hat/CentOS/Fedora-based distributions
                 if command -v dnf &> /dev/null; then
                     # Fedora, RHEL 8+, CentOS 8+
-                    dnf install -y java-17-openjdk
+                    dnf remove -y java-*
                 elif command -v yum &> /dev/null; then
                     # Older CentOS/RHEL
-                    yum install -y java-17-openjdk
+                    yum remove -y java-*
                 fi
             elif [ -f /etc/os-release ] && grep -q "openSUSE" /etc/os-release; then
                 # For openSUSE
-                zypper install -y java-17-openjdk
+                zypper remove -y java-*
             else
-                echo "Unsupported Linux distribution. Please install Java 17 manually."
+                echo "Unsupported Linux distribution. Please uninstall Java manually."
                 exit 1
             fi
+        else
+            echo "Java version $JAVA_VERSION is already installed and meets the minimum requirement."
         fi
     else
         echo "Java is not installed. Installing Java 17..."
-        
-        # Detect Linux distribution and install Java accordingly
-        if [ -f /etc/debian_version ]; then
-            # For Debian/Ubuntu-based distributions
-            apt update && apt install -y openjdk-17-jre
-        elif [ -f /etc/redhat-release ]; then
-            # For Red Hat/CentOS/Fedora-based distributions
-            if command -v dnf &> /dev/null; then
-                # Fedora, RHEL 8+, CentOS 8+
-                dnf install -y java-17-openjdk
-            elif command -v yum &> /dev/null; then
-                # Older CentOS/RHEL
-                yum install -y java-17-openjdk
-            fi
-        elif [ -f /etc/os-release ] && grep -q "openSUSE" /etc/os-release; then
-            # For openSUSE
-            zypper install -y java-17-openjdk
-        else
-            echo "Unsupported Linux distribution. Please install Java 17 manually."
-            exit 1
+    fi
+
+    # Install Java 17 (latest version)
+    if [ -f /etc/debian_version ]; then
+        # For Debian/Ubuntu-based distributions
+        apt update && apt install -y openjdk-17-jre
+    elif [ -f /etc/redhat-release ]; then
+        # For Red Hat/CentOS/Fedora-based distributions
+        if command -v dnf &> /dev/null; then
+            # Fedora, RHEL 8+, CentOS 8+
+            dnf install -y java-17-openjdk
+        elif command -v yum &> /dev/null; then
+            # Older CentOS/RHEL
+            yum install -y java-17-openjdk
         fi
+    elif [ -f /etc/os-release ] && grep -q "openSUSE" /etc/os-release; then
+        # For openSUSE
+        zypper install -y java-17-openjdk
+    else
+        echo "Unsupported Linux distribution. Please install Java 17 manually."
+        exit 1
     fi
 
     # Verify Java installation
