@@ -1,25 +1,11 @@
 #!/bin/bash
 
-# Define Color Variables
-RESET='\033[0m'
+# Define colors for UI
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
 CYAN='\033[0;36m'
-WHITE='\033[1;37m'
-
-# Banner Section
-echo -e "${CYAN}
-              #######  ######  ###########
-              ###  ##  ## ###  ###########
-              ###  ###### ###       ##
-              ###         ###       ##
-              ###         ###       ##
-              ###         ###       ##
-        ################################################
-         Burp Suite Installer by Mahesh Technicals
-        ################################################${RESET}"
+RESET='\033[0m'
 
 # Function to Install Burp Suite
 install_burp() {
@@ -58,9 +44,14 @@ install_burp() {
     echo "java -jar $BURP_DIR/Burp.jar" > /usr/bin/burp
     chmod +x /usr/bin/burp
 
-    # Launch Burp Suite
-    echo -e "${GREEN}Opening Burp Suite...${RESET}"
-    burp
+    # Check if running in headless mode (no X11 display)
+    if [ -z "$DISPLAY" ]; then
+        echo -e "${YELLOW}No X11 display detected. Running Burp Suite with xvfb...${RESET}"
+        xvfb-run java -jar $BURP_DIR/Burp.jar
+    else
+        echo -e "${GREEN}Opening Burp Suite...${RESET}"
+        burp
+    fi
 
     # Display Java Version
     echo -e "${CYAN}Java Version Installed:${RESET}"
@@ -70,42 +61,27 @@ install_burp() {
 # Function to Uninstall Burp Suite
 uninstall_burp() {
     echo -e "${RED}Uninstalling Burp Suite...${RESET}"
-
-    # Check if Burp Suite is installed by verifying the existence of the burp command
-    if command -v burp &> /dev/null; then
-        echo -e "${CYAN}Burp Suite found. Proceeding with uninstallation...${RESET}"
-
-        # Remove the Burp Suite files and the launcher script
-        rm -f /usr/bin/burp
-        rm -rf /root/Burp_Suite/
-        
-        echo -e "${GREEN}Burp Suite has been uninstalled successfully.${RESET}"
-    else
-        echo -e "${YELLOW}Burp Suite is not installed.${RESET}"
-    fi
+    rm -rf /root/Burp_Suite
+    rm -f /usr/bin/burp
+    echo -e "${GREEN}Burp Suite has been uninstalled.${RESET}"
 }
 
-# Main Menu for Installation/Uninstallation
-echo -e "${WHITE}Choose an option: ${RESET}"
+# UI - Display options to the user
+echo -e "${CYAN}#######################################"
+echo -e "${CYAN}           Burp Suite Installer        "
+echo -e "${CYAN}#######################################"
+echo -e "${GREEN}Please choose an option:${RESET}"
+echo -e "${YELLOW}1. Install Burp Suite${RESET}"
+echo -e "${RED}2. Uninstall Burp Suite${RESET}"
 
-# Display Table Format for Options
-echo -e "${CYAN}
-+---------------------+---------------------------------------+
-| ${WHITE}Option${CYAN}             | ${WHITE}Action${CYAN}                            |
-+---------------------+---------------------------------------+
-| ${GREEN}1.${CYAN} Install Burp Suite | ${WHITE}Installs Burp Suite${CYAN}          |
-| ${RED}2.${CYAN} Uninstall Burp Suite| ${WHITE}Uninstalls Burp Suite${CYAN}        |
-+---------------------+---------------------------------------+${RESET}"
+read -p "Enter your choice (1/2): " choice
 
-# Prompt for User Input
-read -p "Enter 1 or 2 to choose an option: " choice
-
-if [[ "$choice" -eq 1 ]]; then
+if [ "$choice" -eq 1 ]; then
     install_burp
-elif [[ "$choice" -eq 2 ]]; then
+elif [ "$choice" -eq 2 ]; then
     uninstall_burp
 else
-    echo -e "${RED}Invalid choice. Please choose 1 to install or 2 to uninstall.${RESET}"
+    echo -e "${RED}Invalid choice. Exiting...${RESET}"
     exit 1
 fi
 
