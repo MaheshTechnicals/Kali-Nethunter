@@ -68,14 +68,9 @@ uninstall_burp() {
     rm -rf /root/Burp_Suite
     rm -f /usr/bin/burp
 
-    # Uninstall Java
+    # Uninstall Java completely
     echo -e "${RED}Uninstalling Java...${RESET}"
-    if [ -d "/usr/lib/jvm/jdk-23" ]; then
-        rm -rf /usr/lib/jvm/jdk-23
-        echo -e "${CYAN}Java 23 has been uninstalled.${RESET}"
-    else
-        echo -e "${YELLOW}Java 23 is not installed.${RESET}"
-    fi
+    sudo apt-get remove --purge -y openjdk-* && sudo update-alternatives --remove-all java && sudo rm -rf /usr/lib/jvm/* && sudo rm -f /usr/bin/java
 
     echo -e "${GREEN}Burp Suite and Java have been uninstalled.${RESET}"
 }
