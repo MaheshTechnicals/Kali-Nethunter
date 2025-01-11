@@ -29,8 +29,6 @@ print_title() {
 
 # Function to install Python
 install_python() {
-    clear
-
     # Update and upgrade system packages
     print_title "Step 1: Updating and Upgrading System Packages"
     sudo apt update && sudo apt upgrade -y
@@ -109,11 +107,8 @@ EOF
 
 # Function to uninstall Python
 uninstall_python() {
-    clear
-
-    print_title "Uninstalling All Python Versions"
-    
     # Remove Python versions
+    print_title "Removing All Python Versions"
     echo -e "${RED}Removing all Python versions...${RESET}"
     sudo apt remove --purge python3* python-pip* -y
     sudo apt autoremove -y
@@ -121,34 +116,40 @@ uninstall_python() {
     clear
 
     # Remove Deadsnakes PPA
+    print_title "Removing Deadsnakes PPA"
     echo -e "${RED}Removing Deadsnakes PPA...${RESET}"
     sudo add-apt-repository --remove ppa:deadsnakes/ppa -y
     sudo apt update
     clear
 
     # Remove virtual environments
+    print_title "Removing Virtual Environment Directory"
     echo -e "${RED}Removing virtual environment directory...${RESET}"
     rm -rf myenv
     clear
 
     # Revert default Python configuration
+    print_title "Reverting Default Python Configuration"
     echo -e "${RED}Reverting default Python configuration...${RESET}"
     sudo update-alternatives --remove python /usr/bin/python
     sudo update-alternatives --remove python3 /usr/bin/python3
     clear
 
     # Reset the alternatives to default system Python
+    print_title "Resetting Alternatives to System Python"
     echo -e "${RED}Resetting alternatives to system Python...${RESET}"
     sudo update-alternatives --auto python
     sudo update-alternatives --auto python3
     clear
 
     # Reload ~/.bashrc to remove alias
+    print_title "Reloading bashrc and Removing Python-related Aliases"
     echo -e "${RED}Reloading bashrc and removing Python-related aliases...${RESET}"
     sed -i '/alias activate=/d' "$HOME/.bashrc"
     source "$HOME/.bashrc"
     clear
 
+    # Final Message
     print_title "Python Uninstallation Completed!"
     echo -e "${GREEN}All Python versions and related configurations have been removed.${RESET}"
 }
