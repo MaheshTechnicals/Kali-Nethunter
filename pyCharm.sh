@@ -75,7 +75,7 @@ install_pycharm() {
     # Ask user for PyCharm version
     echo -e "${CYAN}Which version of PyCharm would you like to install?${RESET}"
     echo -e "${YELLOW}1. Community Edition${RESET}"
-    echo -e "${RED}2. Professional Edition${RESET}"
+    echo -e "${GREEN}2. Professional Edition${RESET}"
     read -p "Enter your choice (1/2): " version_choice
 
     # Define download links
@@ -119,6 +119,14 @@ install_pycharm() {
     echo -e "${CYAN}Creating a symlink for easy access...${RESET}"
     sudo ln -s "$INSTALL_DIR/pycharm-*/bin/pycharm.sh" /usr/bin/pycharm
 
+    # Create application menu entry
+    echo -e "${CYAN}Creating PyCharm desktop entry...${RESET}"
+    if [ "$version_choice" -eq 1 ]; then
+        sudo cp "$INSTALL_DIR/pycharm-*/bin/pycharm.desktop" /usr/share/applications/pycharm-community.desktop
+    elif [ "$version_choice" -eq 2 ]; then
+        sudo cp "$INSTALL_DIR/pycharm-*/bin/pycharm.desktop" /usr/share/applications/pycharm-professional.desktop
+    fi
+
     # Confirm successful installation
     echo -e "${GREEN}PyCharm has been installed successfully!${RESET}"
 }
@@ -144,6 +152,17 @@ uninstall_pycharm() {
         echo -e "${GREEN}PyCharm symlink removed from /usr/bin.${RESET}"
     fi
 
+    # Remove the PyCharm desktop entry
+    if [ -f "/usr/share/applications/pycharm-community.desktop" ]; then
+        sudo rm -f /usr/share/applications/pycharm-community.desktop
+        echo -e "${GREEN}PyCharm Community desktop entry removed.${RESET}"
+    fi
+
+    if [ -f "/usr/share/applications/pycharm-professional.desktop" ]; then
+        sudo rm -f /usr/share/applications/pycharm-professional.desktop
+        echo -e "${GREEN}PyCharm Professional desktop entry removed.${RESET}"
+    fi
+
     # Check if there are any lingering files in the user's home directory
     if [ -d "$HOME/.PyCharm*" ]; then
         sudo rm -rf "$HOME/.PyCharm*"
@@ -159,23 +178,31 @@ echo -e "${CYAN}           PyCharm Installer          "
 echo -e "${CYAN}#######################################"
 echo -e "${GREEN}Please choose an option:${RESET}"
 echo -e "${YELLOW}1. Install PyCharm Community Edition${RESET}"
-echo -e "${RED}2. Install PyCharm Professional Edition${RESET}"
+echo -e "${GREEN}2. Install PyCharm Professional Edition${RESET}"
 echo -e "${CYAN}3. Uninstall PyCharm${RESET}"
 echo -e "${YELLOW}4. Exit${RESET}"
 
-read -p "Enter your choice (1/2/3/4): " choice
+# Prompt user for input
+read -p "Enter your choice (1-4): " choice
 
-if [ "$choice" -eq 1 ]; then
-    install_pycharm
-elif [ "$choice" -eq 2 ]; then
-    install_pycharm
-elif [ "$choice" -eq 3 ]; then
-    uninstall_pycharm
-elif [ "$choice" -eq 4 ]; then
-    echo -e "${CYAN}Exiting...${RESET}"
-    exit 0
-else
-    echo -e "${RED}Invalid choice. Exiting...${RESET}"
-    exit 1
-fi
+# Handle user input
+case $choice in
+    1)
+        install_pycharm
+        ;;
+    2)
+        install_pycharm
+        ;;
+    3)
+        uninstall_pycharm
+        ;;
+    4)
+        echo -e "${CYAN}Exiting...${RESET}"
+        exit 0
+        ;;
+    *)
+        echo -e "${RED}Invalid option, exiting.${RESET}"
+        exit 1
+        ;;
+esac
 
