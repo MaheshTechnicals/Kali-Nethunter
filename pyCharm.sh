@@ -74,6 +74,20 @@ install_pycharm() {
     # Clean up
     rm -f pycharm.tar.gz
 
+    # Create PyCharm desktop entry
+    print_color "yellow" "Creating PyCharm desktop entry..."
+    cat << EOF | sudo tee /usr/share/applications/pycharm.desktop > /dev/null
+[Desktop Entry]
+Name=PyCharm
+Comment=Integrated Development Environment for Python
+Exec=/opt/pycharm-community-*/bin/pycharm.sh %f
+Icon=/opt/pycharm-community-*/bin/pycharm.png
+Terminal=false
+Type=Application
+Categories=Development;IDE;
+StartupNotify=true
+EOF
+
     print_color "green" "PyCharm has been installed successfully!"
 }
 
@@ -89,6 +103,9 @@ uninstall_pycharm() {
         
         print_color "yellow" "Removing PyCharm symlink..."
         sudo rm -f /usr/local/bin/pycharm
+
+        print_color "yellow" "Removing PyCharm desktop entry..."
+        sudo rm -f /usr/share/applications/pycharm.desktop
 
         print_color "green" "PyCharm has been uninstalled successfully!"
     else
