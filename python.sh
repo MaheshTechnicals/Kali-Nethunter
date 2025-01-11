@@ -12,7 +12,7 @@ YELLOW="\033[1;33m"
 RED="\033[1;31m"
 RESET="\033[0m"
 
-# Stylish header
+# Stylish header (Printed only once)
 echo -e "${CYAN}"
 echo "############################################################"
 echo "#                   Python Installer                       #"
