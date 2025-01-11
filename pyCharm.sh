@@ -2,7 +2,7 @@
 
 #===============================#
 #        PyCharm Installer      #
-#  Script by MaheshTechnicals   #
+#   Script by MaheshTechnicals  #
 #===============================#
 
 # Define colors for the UI
@@ -16,7 +16,7 @@ RESET="\033[0m"
 echo -e "${CYAN}"
 echo "############################################################"
 echo "#                    PyCharm Installer                     #"
-echo "#                 Author: MaheshTechnicals                #"
+echo "#               Author: MaheshTechnicals                  #"
 echo "############################################################"
 echo -e "${RESET}"
 
@@ -110,6 +110,7 @@ while true; do
     clear
     echo -e "${CYAN}############################################################${RESET}"
     echo -e "${CYAN}#                    PyCharm Installer                     #${RESET}"
+    echo -e "${CYAN}#               Author: MaheshTechnicals                  #${RESET}"
     echo -e "${CYAN}############################################################${RESET}"
     echo -e "${YELLOW}1. Install PyCharm${RESET}"
     echo -e "${YELLOW}2. Uninstall PyCharm${RESET}"
