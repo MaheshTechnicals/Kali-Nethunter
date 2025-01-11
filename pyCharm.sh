@@ -30,6 +30,30 @@ is_pycharm_installed() {
     fi
 }
 
+# Function to install pv utility
+install_pv() {
+    print_color "blue" "------------------------------------------------------------"
+    print_color "blue" "Installing pv utility"
+    print_color "blue" "------------------------------------------------------------"
+    
+    # Check the package manager and install pv
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get update
+        sudo apt-get install -y pv
+    elif command -v yum &>/dev/null; then
+        sudo yum install -y pv
+    elif command -v dnf &>/dev/null; then
+        sudo dnf install -y pv
+    elif command -v pacman &>/dev/null; then
+        sudo pacman -S --noconfirm pv
+    elif command -v zypper &>/dev/null; then
+        sudo zypper install -y pv
+    else
+        print_color "red" "Unsupported package manager. Please install pv manually."
+        exit 1
+    fi
+}
+
 # Function to install PyCharm
 install_pycharm() {
     print_color "blue" "------------------------------------------------------------"
@@ -122,6 +146,7 @@ while true; do
                 print_color "yellow" "PyCharm is already installed. Uninstalling first..."
                 uninstall_pycharm
             fi
+            install_pv
             install_pycharm
             ;;
         2)
