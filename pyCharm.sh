@@ -44,6 +44,12 @@ install_pycharm() {
     print_color "yellow" "Extracting PyCharm..."
     tar -xzf pycharm.tar.gz -C /opt/ &> /dev/null
 
+    # Check if the symlink already exists, remove if it does
+    if [[ -f "/usr/local/bin/pycharm" ]]; then
+        print_color "yellow" "Symlink already exists. Removing the old one..."
+        sudo rm /usr/local/bin/pycharm
+    fi
+
     # Create symlink for easy access
     print_color "yellow" "Creating Symlink for PyCharm"
     sudo ln -s /opt/pycharm-community-*/bin/pycharm.sh /usr/local/bin/pycharm
@@ -120,4 +126,3 @@ while true; do
     esac
     read -p "Press any key to continue..."
 done
-
