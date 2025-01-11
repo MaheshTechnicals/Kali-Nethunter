@@ -23,7 +23,7 @@ print_color() {
 
 # Function to check if PyCharm is installed
 is_pycharm_installed() {
-    if [ -d "/opt/pycharm" ] || [ -d "/opt/pycharm-community-2023.1.4" ]; then
+    if [ -d "/opt/pycharm" ] || [ -d "/opt/pycharm-community-2023.3.1" ]; then
         return 0
     else
         return 1
@@ -40,9 +40,9 @@ install_pycharm() {
     ARCH=$(uname -m)
     
     if [[ "$ARCH" == "x86_64" ]]; then
-        URL="https://download.jetbrains.com/python/pycharm-community-2023.1.4.tar.gz"
+        URL="https://download.jetbrains.com/python/pycharm-community-2023.3.1.tar.gz"
     elif [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
-        URL="https://download.jetbrains.com/python/pycharm-community-2023.1.4.tar.gz"
+        URL="https://download.jetbrains.com/python/pycharm-community-2023.3.1.tar.gz"
     else
         print_color "red" "Unsupported architecture for installation! Exiting..."
         exit 1
