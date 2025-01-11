@@ -29,6 +29,10 @@ print_title() {
 
 # Function to install Python
 install_python() {
+    # Install software-properties-common to enable add-apt-repository command
+    print_title "Installing software-properties-common"
+    sudo apt install -y software-properties-common
+
     # Update and upgrade system packages
     print_title "Step 1: Updating and Upgrading System Packages"
     sudo apt update && sudo apt upgrade -y
@@ -144,3 +148,4 @@ case $choice in
         echo -e "${RED}Invalid choice. Exiting.${RESET}"
         ;;
 esac
+
