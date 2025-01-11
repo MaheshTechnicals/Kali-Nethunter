@@ -30,6 +30,25 @@ is_pycharm_installed() {
     fi
 }
 
+# Function to install pv if not present
+install_pv() {
+    if ! command -v pv &> /dev/null; then
+        print_color "yellow" "Installing 'pv' utility..."
+        # Check architecture
+        ARCH=$(uname -m)
+        if [[ "$ARCH" == "x86_64" ]]; then
+            sudo apt-get update && sudo apt-get install -y pv
+        elif [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
+            sudo apt-get update && sudo apt-get install -y pv
+        else
+            print_color "red" "Unsupported architecture for 'pv' installation! Exiting..."
+            exit 1
+        fi
+    else
+        print_color "green" "'pv' utility is already installed."
+    fi
+}
+
 # Install PyCharm
 install_pycharm() {
     print_color "blue" "------------------------------------------------------------"
