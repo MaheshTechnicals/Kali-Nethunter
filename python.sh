@@ -29,9 +29,6 @@ print_title() {
 
 # Function to install Python
 install_python() {
-    # Install software-properties-common to enable add-apt-repository command
-    print_title "Installing software-properties-common"
-    sudo apt install -y software-properties-common
     clear
 
     # Update and upgrade system packages
@@ -112,11 +109,8 @@ EOF
 
 # Function to uninstall Python
 uninstall_python() {
-    # Install software-properties-common to enable add-apt-repository command
-    print_title "Installing software-properties-common"
-    sudo apt install -y software-properties-common
     clear
-    
+
     print_title "Uninstalling All Python Versions"
     
     # Remove Python versions
