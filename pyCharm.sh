@@ -23,53 +23,22 @@ print_color() {
 
 # Function to check if PyCharm is installed
 is_pycharm_installed() {
-    if [ -d "/opt/pycharm-community-2024.2.4" ]; then
+    if [ -d "/opt/pycharm" ]; then
         return 0
     else
         return 1
     fi
 }
 
-# Function to install pv if not present
-install_pv() {
-    if ! command -v pv &> /dev/null; then
-        print_color "yellow" "Installing 'pv' utility..."
-        # Check architecture
-        ARCH=$(uname -m)
-        if [[ "$ARCH" == "x86_64" ]]; then
-            sudo apt-get update && sudo apt-get install -y pv
-        elif [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
-            sudo apt-get update && sudo apt-get install -y pv
-        else
-            print_color "red" "Unsupported architecture for 'pv' installation! Exiting..."
-            exit 1
-        fi
-    else
-        print_color "green" "'pv' utility is already installed."
-    fi
-}
-
-# Install PyCharm
+# Function to install PyCharm
 install_pycharm() {
     print_color "blue" "------------------------------------------------------------"
-    print_color "blue" "Installing PyCharm 2024.2.4"
+    print_color "blue" "Installing PyCharm"
     print_color "blue" "------------------------------------------------------------"
     
-    # Check architecture
-    ARCH=$(uname -m)
-    
-    if [[ "$ARCH" == "x86_64" ]]; then
-        URL="https://download.jetbrains.com/python/pycharm-community-2024.2.4.tar.gz"
-    elif [[ "$ARCH" == "arm64" || "$ARCH" == "aarch64" ]]; then
-        URL="https://download.jetbrains.com/python/pycharm-community-2024.2.4.tar.gz"
-    else
-        print_color "red" "Unsupported architecture for installation! Exiting..."
-        exit 1
-    fi
-
     # Download PyCharm
     print_color "yellow" "Downloading PyCharm..."
-    wget $URL -O pycharm.tar.gz
+    wget https://download.jetbrains.com/python/pycharm-community-2024.3.1.1.tar.gz -O pycharm.tar.gz
 
     if [[ $? -ne 0 ]]; then
         print_color "red" "Download failed! Exiting..."
@@ -88,7 +57,7 @@ install_pycharm() {
 
     # Create symlink for easy access
     print_color "yellow" "Creating Symlink for PyCharm"
-    sudo ln -s /opt/pycharm-community-2024.2.4/bin/pycharm.sh /usr/local/bin/pycharm
+    sudo ln -s /opt/pycharm/bin/pycharm.sh /usr/local/bin/pycharm
 
     # Clean up
     rm -f pycharm.tar.gz
@@ -99,15 +68,15 @@ install_pycharm() {
 [Desktop Entry]
 Name=PyCharm
 Comment=Integrated Development Environment for Python
-Exec=/opt/pycharm-community-2024.2.4/bin/pycharm.sh %f
-Icon=/opt/pycharm-community-2024.2.4/bin/pycharm.png
+Exec=/opt/pycharm/bin/pycharm.sh %f
+Icon=/opt/pycharm/bin/pycharm.png
 Terminal=false
 Type=Application
 Categories=Development;IDE;
 StartupNotify=true
 EOF
 
-    print_color "green" "PyCharm 2024.2.4 has been installed successfully!"
+    print_color "green" "PyCharm has been installed successfully!"
 }
 
 # Uninstall PyCharm
@@ -118,7 +87,7 @@ uninstall_pycharm() {
     
     if is_pycharm_installed; then
         print_color "yellow" "Removing PyCharm directories..."
-        sudo rm -rf /opt/pycharm-community-2024.2.4
+        sudo rm -rf /opt/pycharm
         
         print_color "yellow" "Removing PyCharm symlink..."
         sudo rm -f /usr/local/bin/pycharm
