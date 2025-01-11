@@ -61,7 +61,7 @@ uninstall_pycharm() {
 install_pycharm() {
     print_title "Installing PyCharm"
 
-    # Check system architecture
+    # Check system architecture using uname -m
     ARCH=$(uname -m)
     echo -e "${CYAN}Detected system architecture: $ARCH${RESET}"
 
