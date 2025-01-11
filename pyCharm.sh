@@ -72,7 +72,7 @@ uninstall_pycharm() {
         return
     fi
 
-    # Remove symlink
+    # Remove the symlink
     print_color "yellow" "Removing symlink..."
     sudo rm /usr/local/bin/pycharm
 
@@ -126,3 +126,4 @@ while true; do
     esac
     read -p "Press any key to continue..."
 done
+
