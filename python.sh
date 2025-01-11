@@ -55,8 +55,12 @@ install_python() {
     print_title "Step 5: Installing venv Module for ${LATEST_PYTHON_VERSION}"
     sudo apt install -y "${LATEST_PYTHON_VERSION}-venv"
 
+    # Install pip
+    print_title "Step 6: Installing pip for Python"
+    sudo apt install -y python3-pip
+
     # Set the latest Python version as default
-    print_title "Step 6: Setting ${LATEST_PYTHON_VERSION} as the Default Python"
+    print_title "Step 7: Setting ${LATEST_PYTHON_VERSION} as the Default Python"
     PYTHON_BIN_PATH=$(which "${LATEST_PYTHON_VERSION}")
     sudo update-alternatives --install /usr/bin/python python "$PYTHON_BIN_PATH" 1
     sudo update-alternatives --config python <<EOF
@@ -64,16 +68,16 @@ install_python() {
 EOF
 
     # Verify the default Python version
-    print_title "Step 7: Verifying Default Python Version"
+    print_title "Step 8: Verifying Default Python Version"
     DEFAULT_PYTHON_VERSION=$(python --version 2>&1)
     echo -e "${GREEN}Default Python version is now: ${DEFAULT_PYTHON_VERSION}${RESET}"
 
     # Set up a virtual environment
-    print_title "Step 8: Setting Up a Virtual Environment"
+    print_title "Step 9: Setting Up a Virtual Environment"
     python -m venv myenv
 
     # Add a permanent alias for activating the virtual environment
-    print_title "Step 9: Adding Permanent Alias for Virtual Environment Activation"
+    print_title "Step 10: Adding Permanent Alias for Virtual Environment Activation"
     ALIAS_COMMAND="alias activate=\"source $(pwd)/myenv/bin/activate\""
 
     # Add alias to ~/.bashrc
@@ -88,7 +92,7 @@ EOF
     source "$HOME/.bashrc"
 
     # Activate the virtual environment
-    print_title "Step 10: Activating the Virtual Environment"
+    print_title "Step 11: Activating the Virtual Environment"
     echo -e "${GREEN}Activating the virtual environment...${RESET}"
     source myenv/bin/activate
     echo -e "${GREEN}You are now in the virtual environment 'myenv'.${RESET}"
