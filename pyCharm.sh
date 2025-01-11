@@ -35,7 +35,7 @@ install_pv() {
     fi
 }
 
-# Function to download and extract PyCharm
+# Function to install PyCharm
 install_pycharm() {
     local pycharm_url="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1.tar.gz"
     local pycharm_tar="pycharm.tar.gz"
@@ -51,7 +51,7 @@ install_pycharm() {
     print_color "blue" "Extracting PyCharm..."
     sudo rm -rf "$install_dir"
     sudo mkdir -p "$install_dir"
-    sudo tar -xzf "$pycharm_tar" --strip-components=1 -C "$install_dir"
+    pv "$pycharm_tar" | sudo tar -xz --strip-components=1 -C "$install_dir"
     rm -f "$pycharm_tar"
 
     print_color "blue" "Creating symbolic link..."
@@ -73,7 +73,51 @@ EOF
     print_color "green" "PyCharm has been installed successfully!"
 }
 
-# Main script execution
-install_pv
-install_pycharm
+# Function to uninstall PyCharm
+uninstall_pycharm() {
+    local install_dir="/opt/pycharm"
+
+    print_color "blue" "Removing PyCharm installation..."
+    sudo rm -rf "$install_dir"
+
+    print_color "blue" "Removing symbolic link..."
+    sudo rm -f /usr/local/bin/pycharm
+
+    print_color "blue" "Removing desktop entry..."
+    sudo rm -f /usr/share/applications/pycharm.desktop
+
+    print_color "green" "PyCharm has been uninstalled successfully!"
+}
+
+# Display menu
+while true; do
+    clear
+    echo "==========================="
+    echo "     PyCharm Installer     "
+    echo "==========================="
+    echo "1. Install PyCharm"
+    echo "2. Uninstall PyCharm"
+    echo "3. Exit"
+    echo -n "Enter your choice: "
+    read -r choice
+
+    case $choice in
+        1)
+            install_pv
+            install_pycharm
+            read -r -p "Press any key to continue..."
+            ;;
+        2)
+            uninstall_pycharm
+            read -r -p "Press any key to continue..."
+            ;;
+        3)
+            print_color "yellow" "Exiting. Goodbye!"
+            exit 0
+            ;;
+        *)
+            print_color "red" "Invalid option. Please try again."
+            ;;
+    esac
+done
 
