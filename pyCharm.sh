@@ -1,133 +1,111 @@
 #!/bin/bash
 
-#===============================#
-#          PyCharm Installer    #
-#   Script by MaheshTechnicals  #
-#===============================#
-
-# Define colors for the UI
-GREEN="\033[1;32m"
-CYAN="\033[1;36m"
-YELLOW="\033[1;33m"
-RED="\033[1;31m"
-RESET="\033[0m"
-
-# Stylish header
-echo -e "${CYAN}"
-echo "############################################################"
-echo "#                   PyCharm Installer                      #"
-echo "#                 Author: MaheshTechnicals                 #"
-echo "############################################################"
-echo -e "${RESET}"
-
-# Function to print a title
-print_title() {
-    echo -e "${YELLOW}------------------------------------------------------------${RESET}"
-    echo -e "${CYAN}$1${RESET}"
-    echo -e "${YELLOW}------------------------------------------------------------${RESET}"
-}
-
-# Function to show progress bar for extraction
-show_progress() {
-    bar_length=50
-    while [ $extracted -lt $total ]; do
-        sleep 1
-        extracted=$((extracted + 1))
-        percentage=$((extracted * 100 / total))
-        progress_bar=$(printf "%-${bar_length}s" "=")
-        progress_bar="${progress_bar:0:$((percentage * bar_length / 100))}"
-        echo -e "${CYAN}Extracting: [${progress_bar}${progress_bar:0:$((bar_length - ${#progress_bar}))}] ${percentage}%${RESET}"
-    done
-}
-
-# Function to check if PyCharm is installed
-check_pycharm_installed() {
-    if command -v pycharm &> /dev/null; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-# Function to uninstall PyCharm
-uninstall_pycharm() {
-    print_title "Uninstalling PyCharm"
-    sudo apt-get purge pycharm* -y
-    sudo apt-get autoremove -y
-    echo -e "${GREEN}PyCharm has been uninstalled successfully!${RESET}"
-}
-
-# Function to install PyCharm based on architecture
+# Define functions for installation and uninstallation
 install_pycharm() {
-    print_title "Installing PyCharm"
-
-    # Check system architecture using uname -m
+    echo "------------------------------------------------------------"
+    echo "Installing PyCharm"
+    echo "------------------------------------------------------------"
+    
+    # Check architecture
     ARCH=$(uname -m)
-    echo -e "${CYAN}Detected system architecture: $ARCH${RESET}"
+    
+    if [[ "$ARCH" == "x86_64" ]]; then
+        URL="https://download.jetbrains.com/python/pycharm-community-2023.1.4.tar.gz"
+    elif [[ "$ARCH" == "arm64" ]]; then
+        URL="https://download.jetbrains.com/python/pycharm-community-2023.1.4.tar.gz"
+    elif [[ "$ARCH" == "aarch64" ]]; then
+        URL="https://download.jetbrains.com/python/pycharm-community-2023.1.4.tar.gz"
+    else
+        echo "Unsupported architecture for installation! Exiting..."
+        exit 1
+    fi
 
-    case "$ARCH" in
-        x86_64)
-            URL="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1.tar.gz"
-            ;;
-        aarch64)
-            URL="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1-linux-arm64.tar.gz"
-            ;;
-        *)
-            echo -e "${RED}Unsupported architecture: $ARCH. Exiting...${RESET}"
-            exit 1
-            ;;
-    esac
+    # Download PyCharm
+    echo "Downloading PyCharm..."
+    wget $URL -O pycharm.tar.gz
 
-    print_title "Downloading PyCharm"
-    wget -q --show-progress "$URL" -O pycharm.tar.gz
+    if [[ $? -ne 0 ]]; then
+        echo "Download failed! Exiting..."
+        exit 1
+    fi
 
-    print_title "Extracting PyCharm"
-    mkdir -p /opt/pycharm
-    tar -xzf pycharm.tar.gz -C /opt/pycharm --strip-components=1 &
-
-    total=100
-    extracted=0
-    show_progress
-    wait
-
-    print_title "Creating Symlink for PyCharm"
-    sudo ln -s /opt/pycharm/bin/pycharm.sh /usr/local/bin/pycharm
-    echo -e "${GREEN}PyCharm has been installed successfully!${RESET}"
-
+    # Extracting the tar.gz file with a progress bar
+    echo "Extracting PyCharm..."
+    tar -xzf pycharm.tar.gz -C /opt/
+    
+    # Create symlink for easy access
+    echo "Creating Symlink for PyCharm"
+    sudo ln -s /opt/pycharm-community-*/bin/pycharm.sh /usr/local/bin/pycharm
+    
     # Clean up
-    rm pycharm.tar.gz
+    rm -f pycharm.tar.gz
+
+    echo "PyCharm has been installed successfully!"
 }
 
-# Menu to choose install, uninstall, or exit
-while true; do
-    echo -e "${CYAN}Please choose an option:${RESET}"
-    echo -e "${YELLOW}1) Install PyCharm${RESET}"
-    echo -e "${YELLOW}2) Uninstall PyCharm${RESET}"
-    echo -e "${YELLOW}3) Exit${RESET}"
-    read -p "Enter your choice (1/2/3): " choice
+uninstall_pycharm() {
+    echo "------------------------------------------------------------"
+    echo "Uninstalling PyCharm"
+    echo "------------------------------------------------------------"
 
+    # Check if PyCharm is installed
+    if [[ ! -f "/usr/local/bin/pycharm" ]]; then
+        echo "PyCharm is not installed on your system."
+        return
+    fi
+
+    # Remove symlink
+    echo "Removing symlink..."
+    sudo rm /usr/local/bin/pycharm
+
+    # Remove PyCharm installation directory
+    echo "Removing PyCharm installation directory..."
+    sudo rm -rf /opt/pycharm-community-*
+
+    # Remove configuration files
+    echo "Removing PyCharm configuration files..."
+    rm -rf ~/.config/JetBrains/PyCharm*
+    rm -rf ~/.local/share/JetBrains/PyCharm*
+    rm -rf ~/.cache/JetBrains/PyCharm*
+
+    # Remove desktop entries
+    rm -f ~/.local/share/applications/pycharm.desktop
+
+    # Remove any other residual files
+    find ~ -name "*pycharm*" -exec rm -rf {} \;
+
+    echo "PyCharm has been uninstalled successfully!"
+}
+
+# Main script loop
+while true; do
+    clear
+    echo "############################################################"
+    echo "#                   PyCharm Installer                      #"
+    echo "#                 Author: MaheshTechnicals                 #"
+    echo "############################################################"
+    echo
+    echo "Please choose an option:"
+    echo "1) Install PyCharm"
+    echo "2) Uninstall PyCharm"
+    echo "3) Exit"
+    read -p "Enter your choice (1/2/3): " choice
+    
     case $choice in
         1)
-            if check_pycharm_installed; then
-                print_title "PyCharm is already installed. Uninstalling it first..."
-                uninstall_pycharm
-            fi
             install_pycharm
             ;;
         2)
-            if ! check_pycharm_installed; then
-                echo -e "${RED}PyCharm is not installed on your system.${RESET}"
-            else
-                uninstall_pycharm
-            fi
+            uninstall_pycharm
             ;;
         3)
-            echo -e "${CYAN}Exiting the installer...${RESET}"
+            echo "Exiting..."
             exit 0
             ;;
         *)
-            echo -e "${RED}Invalid option! Please select 1, 2, or 3.${RESET}"
+            echo "Invalid choice. Please select 1, 2, or 3."
             ;;
     esac
+    read -p "Press any key to continue..."
 done
 
