@@ -63,12 +63,18 @@ install_pycharm() {
 
     # Check system architecture
     ARCH=$(uname -m)
-    if [ "$ARCH" == "x86_64" ]; then
-        URL="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1.tar.gz"
-    else
-        echo -e "${RED}Unsupported architecture for installation! Exiting...${RESET}"
-        exit 1
-    fi
+    case "$ARCH" in
+        x86_64)
+            URL="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1.tar.gz"
+            ;;
+        aarch64)
+            URL="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1-linux-arm64.tar.gz"
+            ;;
+        *)
+            echo -e "${RED}Unsupported architecture: $ARCH. Exiting...${RESET}"
+            exit 1
+            ;;
+    esac
 
     print_title "Downloading PyCharm"
     wget -q --show-progress "$URL" -O pycharm.tar.gz
@@ -122,3 +128,4 @@ while true; do
             ;;
     esac
 done
+
