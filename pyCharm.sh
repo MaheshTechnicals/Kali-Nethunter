@@ -84,7 +84,10 @@ install_pycharm_community() {
         echo -e "${RED}Error: Failed to download PyCharm.${RESET}"
         exit 1
     fi
-    sudo tar -xzf pycharm-community.tar.gz -C /opt/
+
+    # Extract with progress bar
+    echo -e "${CYAN}Extracting PyCharm Community Edition...${RESET}"
+    tar -xzf pycharm-community.tar.gz -C /opt/ --checkpoint=.100
     rm pycharm-community.tar.gz
 
     # Create a symlink to make PyCharm accessible globally
@@ -120,7 +123,10 @@ install_pycharm_professional() {
         echo -e "${RED}Error: Failed to download PyCharm.${RESET}"
         exit 1
     fi
-    sudo tar -xzf pycharm-professional.tar.gz -C /opt/
+
+    # Extract with progress bar
+    echo -e "${CYAN}Extracting PyCharm Professional Edition...${RESET}"
+    tar -xzf pycharm-professional.tar.gz -C /opt/ --checkpoint=.100
     rm pycharm-professional.tar.gz
 
     # Create a symlink to make PyCharm accessible globally
@@ -131,7 +137,7 @@ install_pycharm_professional() {
     echo -e "${YELLOW}pycharm${RESET}"
 }
 
-# Function to Uninstall PyCharm and Java
+# Function to Uninstall PyCharm (without Java)
 uninstall_pycharm() {
     echo -e "${RED}Uninstalling PyCharm...${RESET}"
     sudo rm -rf /opt/pycharm-*
@@ -139,11 +145,7 @@ uninstall_pycharm() {
     # Remove symlink
     sudo rm -f /usr/bin/pycharm
 
-    # Uninstall Java completely
-    echo -e "${RED}Uninstalling Java...${RESET}"
-    sudo apt-get remove --purge -y openjdk-* && sudo update-alternatives --remove-all java && sudo rm -rf /usr/lib/jvm/* && sudo rm -f /usr/bin/java
-
-    echo -e "${GREEN}PyCharm and Java have been uninstalled.${RESET}"
+    echo -e "${GREEN}PyCharm has been uninstalled.${RESET}"
 }
 
 # UI - Display options to the user
@@ -154,8 +156,9 @@ echo -e "${GREEN}Please choose an option:${RESET}"
 echo -e "${YELLOW}1. Install PyCharm Community Version${RESET}"
 echo -e "${YELLOW}2. Install PyCharm Professional Version${RESET}"
 echo -e "${RED}3. Uninstall PyCharm${RESET}"
+echo -e "${CYAN}4. Exit${RESET}"
 
-read -p "Enter your choice (1/2/3): " choice
+read -p "Enter your choice (1/2/3/4): " choice
 
 if [ "$choice" -eq 1 ]; then
     install_pycharm_community
@@ -163,6 +166,9 @@ elif [ "$choice" -eq 2 ]; then
     install_pycharm_professional
 elif [ "$choice" -eq 3 ]; then
     uninstall_pycharm
+elif [ "$choice" -eq 4 ]; then
+    echo -e "${CYAN}Exiting...${RESET}"
+    exit 0
 else
     echo -e "${RED}Invalid choice. Exiting...${RESET}"
     exit 1
