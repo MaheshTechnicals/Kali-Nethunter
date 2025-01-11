@@ -66,6 +66,12 @@ install_pycharm() {
     # Install Java first
     install_java
 
+    # Check if PyCharm is already installed
+    if [ -d "/opt/pycharm-community" ] || [ -d "/opt/pycharm-professional" ]; then
+        echo -e "${RED}PyCharm is already installed. Uninstall it first before installing again.${RESET}"
+        return
+    fi
+
     # Ask user for PyCharm version
     echo -e "${CYAN}Which version of PyCharm would you like to install?${RESET}"
     echo -e "${YELLOW}1. Community Edition${RESET}"
@@ -122,13 +128,13 @@ uninstall_pycharm() {
     echo -e "${RED}Uninstalling PyCharm...${RESET}"
 
     # Remove the PyCharm installation directory
-    if [ -d "/opt/pycharm-community-*" ]; then
-        sudo rm -rf /opt/pycharm-community-*
+    if [ -d "/opt/pycharm-community" ]; then
+        sudo rm -rf /opt/pycharm-community
         echo -e "${GREEN}PyCharm Community version removed from /opt.${RESET}"
     fi
 
-    if [ -d "/opt/pycharm-professional-*" ]; then
-        sudo rm -rf /opt/pycharm-professional-*
+    if [ -d "/opt/pycharm-professional" ]; then
+        sudo rm -rf /opt/pycharm-professional
         echo -e "${GREEN}PyCharm Professional version removed from /opt.${RESET}"
     fi
 
