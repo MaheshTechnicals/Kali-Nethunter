@@ -101,6 +101,10 @@ EOF
 
 # Function to uninstall Python
 uninstall_python() {
+    # Install software-properties-common to enable add-apt-repository command
+    print_title "Installing software-properties-common"
+    sudo apt install -y software-properties-common
+    
     print_title "Uninstalling All Python Versions"
     
     # Remove Python versions
@@ -112,6 +116,7 @@ uninstall_python() {
     # Remove Deadsnakes PPA
     echo -e "${RED}Removing Deadsnakes PPA...${RESET}"
     sudo add-apt-repository --remove ppa:deadsnakes/ppa -y
+    sudo apt update
 
     # Remove virtual environments
     echo -e "${RED}Removing virtual environment directory...${RESET}"
@@ -119,7 +124,13 @@ uninstall_python() {
 
     # Revert default Python configuration
     echo -e "${RED}Reverting default Python configuration...${RESET}"
-    sudo update-alternatives --remove-all python
+    sudo update-alternatives --remove python /usr/bin/python
+    sudo update-alternatives --remove python3 /usr/bin/python3
+
+    # Reset the alternatives to default system Python
+    echo -e "${RED}Resetting alternatives to system Python...${RESET}"
+    sudo update-alternatives --auto python
+    sudo update-alternatives --auto python3
 
     # Reload ~/.bashrc to remove alias
     echo -e "${RED}Reloading bashrc and removing Python-related aliases...${RESET}"
