@@ -64,8 +64,35 @@ echo -e "${GREEN}Creating a virtual environment named 'myenv' using ${LATEST_PYT
 "${LATEST_PYTHON_VERSION}" -m venv myenv
 echo -e "${GREEN}Virtual environment 'myenv' created successfully!${RESET}"
 
+# Add a permanent alias for activating the virtual environment
+print_title "Step 7: Adding Permanent Alias for Virtual Environment Activation"
+ALIAS_COMMAND="alias activate=\"source $(pwd)/myenv/bin/activate\""
+SHELL_CONFIG=""
+
+# Detect the shell and update the appropriate configuration file
+if [ "$SHELL" == "/bin/bash" ]; then
+    SHELL_CONFIG="$HOME/.bashrc"
+elif [ "$SHELL" == "/bin/zsh" ]; then
+    SHELL_CONFIG="$HOME/.zshrc"
+else
+    echo -e "${RED}Unsupported shell. Please manually add the alias to your shell configuration file.${RESET}"
+    exit 1
+fi
+
+# Add the alias if it doesn't already exist
+if ! grep -Fxq "$ALIAS_COMMAND" "$SHELL_CONFIG"; then
+    echo "$ALIAS_COMMAND" >> "$SHELL_CONFIG"
+    echo -e "${GREEN}Alias 'activate' added to $SHELL_CONFIG!${RESET}"
+else
+    echo -e "${YELLOW}Alias 'activate' already exists in $SHELL_CONFIG.${RESET}"
+fi
+
+# Reload the shell configuration
+source "$SHELL_CONFIG"
+echo -e "${GREEN}Alias 'activate' is now available. Use it to activate your virtual environment.${RESET}"
+
 # Activate the virtual environment
-print_title "Step 7: Activating the Virtual Environment"
+print_title "Step 8: Activating the Virtual Environment"
 echo -e "${GREEN}Activating the virtual environment...${RESET}"
 source myenv/bin/activate
 echo -e "${GREEN}You are now in the virtual environment 'myenv'.${RESET}"
