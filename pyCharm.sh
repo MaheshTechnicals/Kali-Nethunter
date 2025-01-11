@@ -177,10 +177,16 @@ uninstall_pycharm() {
         sudo rm -f /usr/share/applications/pycharm-professional.desktop
     fi
 
-    # Check if there are any lingering files in the user's home directory
+    # Remove PyCharm configuration and cache files from $HOME
     if [ -d "$HOME/.PyCharm*" ]; then
         echo -e "${GREEN}Removing PyCharm configuration and cache files from $HOME...${RESET}"
         sudo rm -rf "$HOME/.PyCharm*"
+    fi
+
+    # Remove any additional lingering files
+    if [ -f "/usr/share/applications/pycharm-fireworks" ]; then
+        echo -e "${GREEN}Removing pycharm-fireworks file...${RESET}"
+        sudo rm -f /usr/share/applications/pycharm-fireworks
     fi
 
     echo -e "${CYAN}PyCharm has been fully uninstalled.${RESET}"
