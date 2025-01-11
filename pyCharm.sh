@@ -1,42 +1,23 @@
 #!/bin/bash
 
-# Function to print colorful output
+# Function to print messages in color
 print_color() {
     case $1 in
-        "red")
-            echo -e "\e[31m$2\e[0m"
-            ;;
-        "green")
-            echo -e "\e[32m$2\e[0m"
-            ;;
-        "yellow")
-            echo -e "\e[33m$2\e[0m"
-            ;;
-        "blue")
-            echo -e "\e[34m$2\e[0m"
-            ;;
-        *)
-            echo "$2"
-            ;;
+        "red") echo -e "\e[31m$2\e[0m" ;;
+        "green") echo -e "\e[32m$2\e[0m" ;;
+        "yellow") echo -e "\e[33m$2\e[0m" ;;
+        "blue") echo -e "\e[34m$2\e[0m" ;;
+        *) echo "$2" ;;
     esac
-}
-
-# Function to check if PyCharm is installed
-is_pycharm_installed() {
-    if [ -d "/opt/pycharm" ]; then
-        return 0
-    else
-        return 1
-    fi
 }
 
 # Function to install pv utility
 install_pv() {
-    print_color "blue" "------------------------------------------------------------"
-    print_color "blue" "Installing pv utility"
-    print_color "blue" "------------------------------------------------------------"
-    
-    # Check the package manager and install pv
+    print_color "blue" "Installing pv utility..."
+    if command -v pv &>/dev/null; then
+        print_color "green" "pv is already installed."
+        return
+    fi
     if command -v apt-get &>/dev/null; then
         sudo apt-get update
         sudo apt-get install -y pv
@@ -54,46 +35,35 @@ install_pv() {
     fi
 }
 
-# Function to install PyCharm
+# Function to download and extract PyCharm
 install_pycharm() {
-    print_color "blue" "------------------------------------------------------------"
-    print_color "blue" "Installing PyCharm"
-    print_color "blue" "------------------------------------------------------------"
-    
-    # Download PyCharm
-    print_color "yellow" "Downloading PyCharm..."
-    wget https://download.jetbrains.com/python/pycharm-community-2024.3.1.1.tar.gz -O pycharm.tar.gz
+    local pycharm_url="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1.tar.gz"
+    local pycharm_tar="pycharm.tar.gz"
+    local install_dir="/opt/pycharm"
 
+    print_color "blue" "Downloading PyCharm..."
+    wget "$pycharm_url" -O "$pycharm_tar"
     if [[ $? -ne 0 ]]; then
         print_color "red" "Download failed! Exiting..."
         exit 1
     fi
 
-    # Extracting the tar.gz file with a stylish progress bar
-    print_color "yellow" "Extracting PyCharm..."
-    pv pycharm.tar.gz | tar -xz -C /opt/ &> /dev/null
+    print_color "blue" "Extracting PyCharm..."
+    sudo rm -rf "$install_dir"
+    sudo mkdir -p "$install_dir"
+    sudo tar -xzf "$pycharm_tar" --strip-components=1 -C "$install_dir"
+    rm -f "$pycharm_tar"
 
-    # Check if the symlink already exists, remove if it does
-    if [[ -f "/usr/local/bin/pycharm" ]]; then
-        print_color "yellow" "Symlink already exists. Removing the old one..."
-        sudo rm /usr/local/bin/pycharm
-    fi
+    print_color "blue" "Creating symbolic link..."
+    sudo ln -sf "$install_dir/bin/pycharm.sh" /usr/local/bin/pycharm
 
-    # Create symlink for easy access
-    print_color "yellow" "Creating Symlink for PyCharm"
-    sudo ln -s /opt/pycharm/bin/pycharm.sh /usr/local/bin/pycharm
-
-    # Clean up
-    rm -f pycharm.tar.gz
-
-    # Create PyCharm desktop entry
-    print_color "yellow" "Creating PyCharm desktop entry..."
+    print_color "blue" "Creating desktop entry..."
     cat << EOF | sudo tee /usr/share/applications/pycharm.desktop > /dev/null
 [Desktop Entry]
 Name=PyCharm
 Comment=Integrated Development Environment for Python
-Exec=/opt/pycharm/bin/pycharm.sh %f
-Icon=/opt/pycharm/bin/pycharm.png
+Exec=$install_dir/bin/pycharm.sh %f
+Icon=$install_dir/bin/pycharm.png
 Terminal=false
 Type=Application
 Categories=Development;IDE;
@@ -103,65 +73,7 @@ EOF
     print_color "green" "PyCharm has been installed successfully!"
 }
 
-# Uninstall PyCharm
-uninstall_pycharm() {
-    print_color "blue" "------------------------------------------------------------"
-    print_color "blue" "Uninstalling PyCharm"
-    print_color "blue" "------------------------------------------------------------"
-    
-    if is_pycharm_installed; then
-        print_color "yellow" "Removing PyCharm directories..."
-        sudo rm -rf /opt/pycharm
-        
-        print_color "yellow" "Removing PyCharm symlink..."
-        sudo rm -f /usr/local/bin/pycharm
-
-        print_color "yellow" "Removing PyCharm desktop entry..."
-        sudo rm -f /usr/share/applications/pycharm.desktop
-
-        print_color "green" "PyCharm has been uninstalled successfully!"
-    else
-        print_color "red" "PyCharm is not installed on your system."
-    fi
-}
-
-# Main menu
-while true; do
-    print_color "blue" "############################################################"
-    print_color "blue" "#                   PyCharm Installer                    #"
-    print_color "blue" "#                 Author: MaheshTechnicals               #"
-    print_color "blue" "############################################################"
-
-    print_color "yellow" "Please choose an option:"
-    print_color "yellow" "1) Install PyCharm"
-    print_color "yellow" "2) Uninstall PyCharm"
-    print_color "yellow" "3) Exit"
-
-    read -p "Enter your choice (1/2/3): " choice
-
-    case $choice in
-        1)
-            # Check if PyCharm is installed, if yes, uninstall it first
-            if is_pycharm_installed; then
-                print_color "yellow" "PyCharm is already installed. Uninstalling first..."
-                uninstall_pycharm
-            fi
-            install_pv
-            install_pycharm
-            ;;
-        2)
-            uninstall_pycharm
-            ;;
-        3)
-            print_color "blue" "Exiting..."
-            break
-            ;;
-        *)
-            print_color "red" "Invalid choice! Please choose a valid option."
-            ;;
-    esac
-
-    read -p "Press any key to continue..." -n1 -s
-    echo ""
-done
+# Main script execution
+install_pv
+install_pycharm
 
