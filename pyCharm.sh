@@ -1,21 +1,37 @@
 #!/bin/bash
 
-# Function to print messages in color
-print_color() {
-    case $1 in
-        "red") echo -e "\e[31m$2\e[0m" ;;
-        "green") echo -e "\e[32m$2\e[0m" ;;
-        "yellow") echo -e "\e[33m$2\e[0m" ;;
-        "blue") echo -e "\e[34m$2\e[0m" ;;
-        *) echo "$2" ;;
-    esac
+#===============================#
+#        PyCharm Installer      #
+#  Script by MaheshTechnicals   #
+#===============================#
+
+# Define colors for the UI
+GREEN="\033[1;32m"
+CYAN="\033[1;36m"
+YELLOW="\033[1;33m"
+RED="\033[1;31m"
+RESET="\033[0m"
+
+# Stylish header
+echo -e "${CYAN}"
+echo "############################################################"
+echo "#                    PyCharm Installer                     #"
+echo "#                 Author: MaheshTechnicals                #"
+echo "############################################################"
+echo -e "${RESET}"
+
+# Function to print a title
+print_title() {
+    echo -e "${YELLOW}------------------------------------------------------------${RESET}"
+    echo -e "${CYAN}$1${RESET}"
+    echo -e "${YELLOW}------------------------------------------------------------${RESET}"
 }
 
 # Function to install pv utility
 install_pv() {
-    print_color "blue" "Installing pv utility..."
+    print_title "Installing pv Utility"
     if command -v pv &>/dev/null; then
-        print_color "green" "pv is already installed."
+        echo -e "${GREEN}pv is already installed.${RESET}"
         return
     fi
     if command -v apt-get &>/dev/null; then
@@ -30,7 +46,7 @@ install_pv() {
     elif command -v zypper &>/dev/null; then
         sudo zypper install -y pv
     else
-        print_color "red" "Unsupported package manager. Please install pv manually."
+        echo -e "${RED}Unsupported package manager. Please install pv manually.${RESET}"
         exit 1
     fi
 }
@@ -41,23 +57,23 @@ install_pycharm() {
     local pycharm_tar="pycharm.tar.gz"
     local install_dir="/opt/pycharm"
 
-    print_color "blue" "Downloading PyCharm..."
+    print_title "Downloading PyCharm"
     wget "$pycharm_url" -O "$pycharm_tar"
     if [[ $? -ne 0 ]]; then
-        print_color "red" "Download failed! Exiting..."
+        echo -e "${RED}Download failed! Exiting...${RESET}"
         exit 1
     fi
 
-    print_color "blue" "Extracting PyCharm..."
+    print_title "Extracting PyCharm"
     sudo rm -rf "$install_dir"
     sudo mkdir -p "$install_dir"
     pv "$pycharm_tar" | sudo tar -xz --strip-components=1 -C "$install_dir"
     rm -f "$pycharm_tar"
 
-    print_color "blue" "Creating symbolic link..."
+    print_title "Creating Symbolic Link"
     sudo ln -sf "$install_dir/bin/pycharm.sh" /usr/local/bin/pycharm
 
-    print_color "blue" "Creating desktop entry..."
+    print_title "Creating Desktop Entry"
     cat << EOF | sudo tee /usr/share/applications/pycharm.desktop > /dev/null
 [Desktop Entry]
 Name=PyCharm
@@ -70,35 +86,35 @@ Categories=Development;IDE;
 StartupNotify=true
 EOF
 
-    print_color "green" "PyCharm has been installed successfully!"
+    echo -e "${GREEN}PyCharm has been installed successfully!${RESET}"
 }
 
 # Function to uninstall PyCharm
 uninstall_pycharm() {
     local install_dir="/opt/pycharm"
 
-    print_color "blue" "Removing PyCharm installation..."
+    print_title "Removing PyCharm Installation"
     sudo rm -rf "$install_dir"
 
-    print_color "blue" "Removing symbolic link..."
+    print_title "Removing Symbolic Link"
     sudo rm -f /usr/local/bin/pycharm
 
-    print_color "blue" "Removing desktop entry..."
+    print_title "Removing Desktop Entry"
     sudo rm -f /usr/share/applications/pycharm.desktop
 
-    print_color "green" "PyCharm has been uninstalled successfully!"
+    echo -e "${GREEN}PyCharm has been uninstalled successfully!${RESET}"
 }
 
 # Display menu
 while true; do
     clear
-    echo "==========================="
-    echo "     PyCharm Installer     "
-    echo "==========================="
-    echo "1. Install PyCharm"
-    echo "2. Uninstall PyCharm"
-    echo "3. Exit"
-    echo -n "Enter your choice: "
+    echo -e "${CYAN}############################################################${RESET}"
+    echo -e "${CYAN}#                    PyCharm Installer                     #${RESET}"
+    echo -e "${CYAN}############################################################${RESET}"
+    echo -e "${YELLOW}1. Install PyCharm${RESET}"
+    echo -e "${YELLOW}2. Uninstall PyCharm${RESET}"
+    echo -e "${YELLOW}3. Exit${RESET}"
+    echo -n -e "${CYAN}Enter your choice: ${RESET}"
     read -r choice
 
     case $choice in
@@ -112,11 +128,11 @@ while true; do
             read -r -p "Press any key to continue..."
             ;;
         3)
-            print_color "yellow" "Exiting. Goodbye!"
+            echo -e "${YELLOW}Exiting. Goodbye!${RESET}"
             exit 0
             ;;
         *)
-            print_color "red" "Invalid option. Please try again."
+            echo -e "${RED}Invalid option. Please try again.${RESET}"
             ;;
     esac
 done
