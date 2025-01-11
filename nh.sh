@@ -58,7 +58,7 @@ package() {
     dpkg --configure -a
     apt-mark hold udisks2
     
-    packs=(sudo gnupg2 curl nano git xz-utils at-spi2-core xfce4 xfce4-goodies xfce4-terminal librsvg2-common menu inetutils-tools dialog exo-utils tigervnc-standalone-server tigervnc-common tigervnc-tools dbus-x11 fonts-beng fonts-beng-extra gtk2-engines-murrine gtk2-engines-pixbuf apt-transport-https)
+    packs=(sudo gnupg2 curl nano git xz-utils at-spi2-core xfce4 xfce4-goodies xfce4-terminal librsvg2-common menu inetutils-tools dialog exo-utils tigervnc-standalone-server tigervnc-common tigervnc-tools dbus-x11 fonts-beng fonts-beng-extra gtk2-engines-murrine gtk2-engines-pixbuf apt-transport-https kali-archive-keyring)
     for hulu in "${packs[@]}"; do
         type -p "$hulu" &>/dev/null || {
             echo -e "\n${R} [${W}-${R}]${G} Installing package : ${Y}$hulu${W}"
@@ -68,6 +68,34 @@ package() {
     
     apt-get update -y
     apt-get upgrade -y
+}
+
+install_kali_linux() {
+    banner
+    echo -e "${G}Starting Kali Linux installation process..."
+
+    # Updating the system and installing Kali Linux repositories
+    apt update -y
+    apt upgrade -y
+    apt dist-upgrade -y
+
+    # Set up Kali Linux repositories if not already done
+    if ! grep -q "kali-rolling" /etc/apt/sources.list; then
+        echo "deb http://http.kali.org/kali kali-rolling main non-free contrib" >> /etc/apt/sources.list
+    fi
+
+    # Install Kali Linux tools
+    echo -e "${G}Installing Kali Linux tools..."
+
+    kali_tools=(
+        kali-linux-top10 kali-tools-web kali-tools-pentesting kali-tools-wireless kali-tools-forensics
+        kali-tools-exploitation kali-tools-vulnerability kali-tools-information-gathering
+    )
+
+    for tool in "${kali_tools[@]}"; do
+        echo -e "${Y}Installing ${tool}..."
+        apt install -y $tool
+    done
 }
 
 install_apt() {
@@ -148,27 +176,26 @@ install_softwares() {
             ${Y} ---${G} Select IDE ${Y}---
 
             ${C} [${W}1${C}] Sublime Text Editor (Recommended)
-            ${C} [${W}2${C}] Visual Studio Code
+            ${C} [${W}2${C}] VSCode
             ${C} [${W}3${C}] Both (Sublime + VSCode)
             ${C} [${W}4${C}] Skip! (Default)
 
         EOF
         read -n1 -p "${R} [${G}~${R}]${Y} Select an Option: ${G}" IDE_OPTION
-        banner
     }
-    
-    cat <<- EOF
-        ${Y} ---${G} Media Player ${Y}---
 
-        ${C} [${W}1${C}] MPV Media Player (Recommended)
-        ${C} [${W}2${C}] VLC Media Player
+    cat <<- EOF
+        ${Y} ---${G} Select Media Player ${Y}---
+
+        ${C} [${W}1${C}] MPV
+        ${C} [${W}2${C}] VLC
         ${C} [${W}3${C}] Both (MPV + VLC)
         ${C} [${W}4${C}] Skip! (Default)
 
     EOF
     read -n1 -p "${R} [${G}~${R}]${Y} Select an Option: ${G}" MEDIA_PLAYER_OPTION
     banner
-    
+
     case $BROWSER_OPTION in
         1) install_firefox ;;
         2) install_chromium ;;
@@ -195,5 +222,6 @@ install_softwares() {
 # Run functions
 check_root
 package
+install_kali_linux
 install_softwares
 
