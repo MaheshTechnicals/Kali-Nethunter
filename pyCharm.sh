@@ -63,6 +63,8 @@ install_pycharm() {
 
     # Check system architecture
     ARCH=$(uname -m)
+    echo -e "${CYAN}Detected system architecture: $ARCH${RESET}"
+
     case "$ARCH" in
         x86_64)
             URL="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1.tar.gz"
