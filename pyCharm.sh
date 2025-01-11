@@ -59,111 +59,110 @@ install_java() {
     java -version
 }
 
-# Function to Install PyCharm Community Version
-install_pycharm_community() {
-    echo -e "${GREEN}Installing PyCharm Community Version...${RESET}"
+# Function to Install PyCharm (Community/Professional)
+install_pycharm() {
+    echo -e "${GREEN}Installing PyCharm...${RESET}"
 
-    # Check if Java is installed and version is 23 or higher
-    if command -v java &> /dev/null; then
-        INSTALLED_VERSION=$(java -version 2>&1 | head -n 1 | awk -F '"' '{print $2}' | awk -F '.' '{print $1}')
-        if [[ $INSTALLED_VERSION -lt 23 ]]; then
-            echo -e "${YELLOW}Java version is less than 23. Installing Java 23...${RESET}"
-            install_java
-        else
-            echo -e "${GREEN}Java version $INSTALLED_VERSION is already installed. Skipping Java installation.${RESET}"
-        fi
+    # Install Java first
+    install_java
+
+    # Ask user for PyCharm version
+    echo -e "${CYAN}Which version of PyCharm would you like to install?${RESET}"
+    echo -e "${YELLOW}1. Community Edition${RESET}"
+    echo -e "${RED}2. Professional Edition${RESET}"
+    read -p "Enter your choice (1/2): " version_choice
+
+    # Define download links
+    if [ "$version_choice" -eq 1 ]; then
+        echo -e "${CYAN}Installing PyCharm Community Edition...${RESET}"
+        DOWNLOAD_URL="https://download.jetbrains.com/python/pycharm-community-2023.2.2.tar.gz"
+        INSTALL_DIR="/opt/pycharm-community"
+    elif [ "$version_choice" -eq 2 ]; then
+        echo -e "${CYAN}Installing PyCharm Professional Edition...${RESET}"
+        DOWNLOAD_URL="https://download.jetbrains.com/python/pycharm-professional-2023.2.2.tar.gz"
+        INSTALL_DIR="/opt/pycharm-professional"
     else
-        echo -e "${RED}Java is not installed. Installing Java 23...${RESET}"
-        install_java
+        echo -e "${RED}Invalid option selected. Exiting...${RESET}"
+        exit 1
     fi
 
-    # Download and Install PyCharm Community Version
-    echo -e "${YELLOW}Downloading PyCharm Community Edition...${RESET}"
-    wget https://download.jetbrains.com/python/pycharm-community-2023.2.tar.gz -O pycharm-community.tar.gz --progress=bar
+    # Download PyCharm
+    echo -e "${YELLOW}Downloading PyCharm from $DOWNLOAD_URL...${RESET}"
+    wget "$DOWNLOAD_URL" -O pycharm.tar.gz --progress=bar
     if [[ $? -ne 0 ]]; then
         echo -e "${RED}Error: Failed to download PyCharm.${RESET}"
         exit 1
     fi
 
-    # Extract with progress bar
-    echo -e "${CYAN}Extracting PyCharm Community Edition...${RESET}"
-    tar -xzf pycharm-community.tar.gz -C /opt/ --checkpoint=.100
-    rm pycharm-community.tar.gz
+    # Create directory for installation
+    echo -e "${CYAN}Creating installation directory...${RESET}"
+    sudo mkdir -p "$INSTALL_DIR"
 
-    # Create a symlink to make PyCharm accessible globally
-    sudo ln -s /opt/pycharm-community-*/bin/pycharm.sh /usr/bin/pycharm
-
-    echo -e "${CYAN}PyCharm Community Version has been successfully installed!${RESET}"
-    echo -e "${GREEN}To start PyCharm, run the following command:${RESET}"
-    echo -e "${YELLOW}pycharm${RESET}"
-}
-
-# Function to Install PyCharm Professional Version
-install_pycharm_professional() {
-    echo -e "${GREEN}Installing PyCharm Professional Version...${RESET}"
-
-    # Check if Java is installed and version is 23 or higher
-    if command -v java &> /dev/null; then
-        INSTALLED_VERSION=$(java -version 2>&1 | head -n 1 | awk -F '"' '{print $2}' | awk -F '.' '{print $1}')
-        if [[ $INSTALLED_VERSION -lt 23 ]]; then
-            echo -e "${YELLOW}Java version is less than 23. Installing Java 23...${RESET}"
-            install_java
-        else
-            echo -e "${GREEN}Java version $INSTALLED_VERSION is already installed. Skipping Java installation.${RESET}"
-        fi
-    else
-        echo -e "${RED}Java is not installed. Installing Java 23...${RESET}"
-        install_java
-    fi
-
-    # Download and Install PyCharm Professional Version
-    echo -e "${YELLOW}Downloading PyCharm Professional Edition...${RESET}"
-    wget https://download.jetbrains.com/python/pycharm-professional-2023.2.tar.gz -O pycharm-professional.tar.gz --progress=bar
+    # Extract PyCharm
+    echo -e "${CYAN}Extracting PyCharm...${RESET}"
+    sudo tar -xzf pycharm.tar.gz -C "$INSTALL_DIR"
     if [[ $? -ne 0 ]]; then
-        echo -e "${RED}Error: Failed to download PyCharm.${RESET}"
+        echo -e "${RED}Error: Failed to extract PyCharm.${RESET}"
         exit 1
     fi
 
-    # Extract with progress bar
-    echo -e "${CYAN}Extracting PyCharm Professional Edition...${RESET}"
-    tar -xzf pycharm-professional.tar.gz -C /opt/ --checkpoint=.100
-    rm pycharm-professional.tar.gz
+    # Remove downloaded tar file
+    rm -f pycharm.tar.gz
 
-    # Create a symlink to make PyCharm accessible globally
-    sudo ln -s /opt/pycharm-professional-*/bin/pycharm.sh /usr/bin/pycharm
+    # Create a symlink for easy access
+    echo -e "${CYAN}Creating a symlink for easy access...${RESET}"
+    sudo ln -s "$INSTALL_DIR/pycharm-*/bin/pycharm.sh" /usr/bin/pycharm
 
-    echo -e "${CYAN}PyCharm Professional Version has been successfully installed!${RESET}"
-    echo -e "${GREEN}To start PyCharm, run the following command:${RESET}"
-    echo -e "${YELLOW}pycharm${RESET}"
+    # Confirm successful installation
+    echo -e "${GREEN}PyCharm has been installed successfully!${RESET}"
 }
 
-# Function to Uninstall PyCharm (without Java)
+# Function to Uninstall PyCharm
 uninstall_pycharm() {
     echo -e "${RED}Uninstalling PyCharm...${RESET}"
-    sudo rm -rf /opt/pycharm-*
 
-    # Remove symlink
-    sudo rm -f /usr/bin/pycharm
+    # Remove the PyCharm installation directory
+    if [ -d "/opt/pycharm-community-*" ]; then
+        sudo rm -rf /opt/pycharm-community-*
+        echo -e "${GREEN}PyCharm Community version removed from /opt.${RESET}"
+    fi
 
-    echo -e "${GREEN}PyCharm has been uninstalled.${RESET}"
+    if [ -d "/opt/pycharm-professional-*" ]; then
+        sudo rm -rf /opt/pycharm-professional-*
+        echo -e "${GREEN}PyCharm Professional version removed from /opt.${RESET}"
+    fi
+
+    # Remove the PyCharm symlink
+    if [ -L "/usr/bin/pycharm" ]; then
+        sudo rm -f /usr/bin/pycharm
+        echo -e "${GREEN}PyCharm symlink removed from /usr/bin.${RESET}"
+    fi
+
+    # Check if there are any lingering files in the user's home directory
+    if [ -d "$HOME/.PyCharm*" ]; then
+        sudo rm -rf "$HOME/.PyCharm*"
+        echo -e "${GREEN}PyCharm configuration and cache files removed from $HOME.${RESET}"
+    fi
+
+    echo -e "${CYAN}PyCharm has been fully uninstalled.${RESET}"
 }
 
 # UI - Display options to the user
 echo -e "${CYAN}#######################################"
-echo -e "${CYAN}           PyCharm Installer           "
+echo -e "${CYAN}           PyCharm Installer          "
 echo -e "${CYAN}#######################################"
 echo -e "${GREEN}Please choose an option:${RESET}"
-echo -e "${YELLOW}1. Install PyCharm Community Version${RESET}"
-echo -e "${YELLOW}2. Install PyCharm Professional Version${RESET}"
-echo -e "${RED}3. Uninstall PyCharm${RESET}"
-echo -e "${CYAN}4. Exit${RESET}"
+echo -e "${YELLOW}1. Install PyCharm Community Edition${RESET}"
+echo -e "${RED}2. Install PyCharm Professional Edition${RESET}"
+echo -e "${CYAN}3. Uninstall PyCharm${RESET}"
+echo -e "${YELLOW}4. Exit${RESET}"
 
 read -p "Enter your choice (1/2/3/4): " choice
 
 if [ "$choice" -eq 1 ]; then
-    install_pycharm_community
+    install_pycharm
 elif [ "$choice" -eq 2 ]; then
-    install_pycharm_professional
+    install_pycharm
 elif [ "$choice" -eq 3 ]; then
     uninstall_pycharm
 elif [ "$choice" -eq 4 ]; then
