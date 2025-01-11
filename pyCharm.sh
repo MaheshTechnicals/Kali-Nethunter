@@ -86,6 +86,15 @@ uninstall_pycharm() {
         sudo rm -rf /opt/pycharm
     fi
 
+    # Check for any remaining PyCharm directories in /opt/
+    print_color "yellow" "Checking for any remaining PyCharm directories in /opt/..."
+    for dir in /opt/pycharm*; do
+        if [[ -d "$dir" ]]; then
+            print_color "yellow" "Removing remaining directory: $dir"
+            sudo rm -rf "$dir"
+        fi
+    done
+
     # Remove configuration files
     print_color "yellow" "Removing PyCharm configuration files..."
     rm -rf ~/.config/JetBrains/PyCharm*
