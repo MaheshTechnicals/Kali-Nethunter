@@ -1,5 +1,5 @@
 #!/bin/bash
-# Kali NetHunter Installer Script v1.5
+# Kali NetHunter Installer Script v1.6
 # Author: Mahesh
 # Email: help@maheshtechnicals.com
 
@@ -19,7 +19,7 @@ detect_architecture() {
 # Install required Termux packages
 echo "Installing required packages..."
 pkg update -y && pkg upgrade -y
-pkg install wget tar proot proot-distro curl -y
+pkg install wget tar proot proot-distro curl qemu-user-static -y
 
 # Detect system architecture
 ARCH=$(detect_architecture)
@@ -66,11 +66,18 @@ exec "$@"
 EOF
 chmod +x ~/kali-nethunter/usr/bin/env
 
+# Set up qemu for foreign binaries if needed
+echo "Setting up QEMU for architecture emulation (if needed)..."
+if [ "$ARCH" != "$(uname -m)" ]; then
+    cp /data/data/com.termux/files/usr/bin/qemu-* ~/kali-nethunter/usr/bin/
+    chmod +x ~/kali-nethunter/usr/bin/qemu-*
+fi
+
 # Unset LD_PRELOAD (fix interference from Termux)
 unset LD_PRELOAD
 
-# Run initialization to resolve missing libraries
-echo "Initializing rootfs to resolve missing libraries..."
+# Initialize rootfs with basic packages to ensure proper environment
+echo "Initializing rootfs with basic packages..."
 proot --link2symlink -0 -r ~/kali-nethunter -b /dev -b /proc -b /sys -b /data/data/com.termux/files/home:/root -w /root /bin/bash << "EOC"
 apt update && apt install -y coreutils bash wget curl binutils
 exit
