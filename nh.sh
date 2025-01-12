@@ -1,5 +1,5 @@
 #!/bin/bash
-# Kali NetHunter Installer Script v1.7 (ARM64 Fix)
+# Kali NetHunter Installer Script v1.9 (With Correct QEMU URL)
 # Author: Mahesh
 # Email: help@maheshtechnicals.com
 
@@ -19,7 +19,7 @@ detect_architecture() {
 # Install required Termux packages
 echo "Installing required packages..."
 pkg update -y && pkg upgrade -y
-pkg install wget tar proot proot-distro curl -y
+pkg install wget tar proot proot-distro curl qemu-user-static -y
 
 # Check for architecture
 ARCH=$(detect_architecture)
@@ -66,14 +66,14 @@ exec "$@"
 EOF
 chmod +x ~/kali-nethunter/usr/bin/env
 
-# QEMU Setup: Check if qemu is needed for ARM or foreign architecture
+# QEMU Setup for ARM64 if necessary
 if [ "$ARCH" != "amd64" ]; then
     echo "Setting up QEMU for ARM64/ARM emulation..."
     mkdir -p ~/kali-nethunter/usr/bin
-    wget https://github.com/termux/qemu/releases/download/v5.0.0/qemu-arm64-static -O ~/kali-nethunter/usr/bin/qemu-arm64-static
-    chmod +x ~/kali-nethunter/usr/bin/qemu-arm64-static
-    # Set QEMU binary if necessary for non-native architecture
-    echo "qemu-arm64-static setup complete"
+    # Download the correct QEMU binary from the provided URL
+    wget -O ~/kali-nethunter/usr/bin/qemu-aarch64-static "https://github.com/multiarch/qemu-user-static/releases/download/v7.2.0-1/qemu-aarch64-static"
+    chmod +x ~/kali-nethunter/usr/bin/qemu-aarch64-static
+    echo "QEMU setup complete"
 fi
 
 # Unset LD_PRELOAD (fix interference from Termux)
