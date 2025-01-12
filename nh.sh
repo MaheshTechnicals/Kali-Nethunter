@@ -1,5 +1,5 @@
 #!/bin/bash
-# Kali NetHunter Installer Script v1.3
+# Kali NetHunter Installer Script v1.4
 # Author: Mahesh
 # Email: help@maheshtechnicals.com
 
@@ -48,30 +48,31 @@ rm rootfs.tar.xz
 
 # Fix missing directories and binaries
 echo "Fixing missing directories and binaries..."
-mkdir -p ~/kali-nethunter/{root,proc,sys,dev,tmp,run,var/tmp,usr/bin,bin}
+mkdir -p ~/kali-nethunter/{root,proc,sys,dev,tmp,run,var/tmp}
+mkdir -p ~/kali-nethunter/bin ~/kali-nethunter/usr/bin ~/kali-nethunter/lib ~/kali-nethunter/lib64
 touch ~/kali-nethunter/usr/bin/env
-touch ~/kali-nethunter/bin/bash
-chmod +x ~/kali-nethunter/usr/bin/env ~/kali-nethunter/bin/bash
+chmod +x ~/kali-nethunter/usr/bin/env
 
-# Add a fallback for `env` to avoid issues
-cat > ~/kali-nethunter/usr/bin/env << 'EOF'
-#!/bin/bash
-exec "$@"
-EOF
-
-# Add a fallback for `bash` to avoid issues
+# Add fallback for `/bin/bash` and `/usr/bin/env`
 cat > ~/kali-nethunter/bin/bash << 'EOF'
-#!/bin/bash
+#!/bin/sh
+exec /usr/bin/env bash "$@"
+EOF
+chmod +x ~/kali-nethunter/bin/bash
+
+cat > ~/kali-nethunter/usr/bin/env << 'EOF'
+#!/bin/sh
 exec "$@"
 EOF
+chmod +x ~/kali-nethunter/usr/bin/env
 
-# Unset LD_PRELOAD to fix termux-exec interference
+# Ensure Termux does not interfere with `proot`
 unset LD_PRELOAD
 
 # Run fix script to initialize the rootfs
 echo "Running fix script to initialize the rootfs..."
 proot --link2symlink -0 -r ~/kali-nethunter -b /dev -b /proc -b /sys -b /data/data/com.termux/files/home:/root -w /root /bin/bash << "EOC"
-apt update && apt install -y coreutils binutils wget curl
+apt update && apt install -y coreutils binutils wget curl bash
 exit
 EOC
 
