@@ -44,15 +44,17 @@ echo "Extracting rootfs..."
 proot --link2symlink tar -xJf rootfs.tar.xz --exclude='dev' -C ~/kali-nethunter
 rm rootfs.tar.xz
 
-# Create missing directories
-echo "Fixing missing directories..."
-mkdir -p ~/kali-nethunter/root
-mkdir -p ~/kali-nethunter/tmp
-mkdir -p ~/kali-nethunter/dev
-mkdir -p ~/kali-nethunter/proc
-mkdir -p ~/kali-nethunter/sys
-mkdir -p ~/kali-nethunter/run
-mkdir -p ~/kali-nethunter/var/tmp
+# Fix missing directories and files
+echo "Fixing missing directories and binaries..."
+mkdir -p ~/kali-nethunter/{root,proc,sys,dev,tmp,run,var/tmp,usr/bin}
+touch ~/kali-nethunter/usr/bin/env
+chmod +x ~/kali-nethunter/usr/bin/env
+
+# Add a fallback for `env` to avoid issues
+cat > ~/kali-nethunter/usr/bin/env << 'EOF'
+#!/bin/bash
+exec "$@"
+EOF
 
 # Set up NetHunter
 echo "Setting up NetHunter..."
