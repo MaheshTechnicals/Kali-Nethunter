@@ -1,5 +1,5 @@
 #!/bin/bash
-# Kali NetHunter Installer Script v1.6
+# Kali NetHunter Installer Script v1.7 (ARM64 Fix)
 # Author: Mahesh
 # Email: help@maheshtechnicals.com
 
@@ -19,9 +19,9 @@ detect_architecture() {
 # Install required Termux packages
 echo "Installing required packages..."
 pkg update -y && pkg upgrade -y
-pkg install wget tar proot proot-distro curl qemu-user-static -y
+pkg install wget tar proot proot-distro curl -y
 
-# Detect system architecture
+# Check for architecture
 ARCH=$(detect_architecture)
 echo "Detected architecture: $ARCH"
 
@@ -45,7 +45,7 @@ echo "Extracting rootfs..."
 proot --link2symlink tar -xJf rootfs.tar.xz --exclude='dev' -C ~/kali-nethunter
 rm rootfs.tar.xz
 
-# Fix missing directories, binaries, and interpreters
+# Fix missing directories and binaries
 echo "Fixing missing directories and binaries..."
 mkdir -p ~/kali-nethunter/{root,proc,sys,dev,tmp,run,var/tmp}
 mkdir -p ~/kali-nethunter/bin ~/kali-nethunter/usr/bin ~/kali-nethunter/lib ~/kali-nethunter/lib64
@@ -66,11 +66,14 @@ exec "$@"
 EOF
 chmod +x ~/kali-nethunter/usr/bin/env
 
-# Set up qemu for foreign binaries if needed
-echo "Setting up QEMU for architecture emulation (if needed)..."
-if [ "$ARCH" != "$(uname -m)" ]; then
-    cp /data/data/com.termux/files/usr/bin/qemu-* ~/kali-nethunter/usr/bin/
-    chmod +x ~/kali-nethunter/usr/bin/qemu-*
+# QEMU Setup: Check if qemu is needed for ARM or foreign architecture
+if [ "$ARCH" != "amd64" ]; then
+    echo "Setting up QEMU for ARM64/ARM emulation..."
+    mkdir -p ~/kali-nethunter/usr/bin
+    wget https://github.com/termux/qemu/releases/download/v5.0.0/qemu-arm64-static -O ~/kali-nethunter/usr/bin/qemu-arm64-static
+    chmod +x ~/kali-nethunter/usr/bin/qemu-arm64-static
+    # Set QEMU binary if necessary for non-native architecture
+    echo "qemu-arm64-static setup complete"
 fi
 
 # Unset LD_PRELOAD (fix interference from Termux)
@@ -83,7 +86,7 @@ apt update && apt install -y coreutils bash wget curl binutils
 exit
 EOC
 
-# Create a start script for NetHunter
+# Create start script for NetHunter
 echo "Creating start script for NetHunter..."
 cat > start-nethunter.sh << 'EOF'
 #!/bin/bash
