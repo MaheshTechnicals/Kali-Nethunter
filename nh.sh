@@ -1,5 +1,5 @@
 #!/bin/bash
-# Kali NetHunter Installer Script v1.4
+# Kali NetHunter Installer Script v1.5
 # Author: Mahesh
 # Email: help@maheshtechnicals.com
 
@@ -16,17 +16,16 @@ detect_architecture() {
     esac
 }
 
-# Install required packages
+# Install required Termux packages
 echo "Installing required packages..."
-pkg update -y
-pkg upgrade -y
+pkg update -y && pkg upgrade -y
 pkg install wget tar proot proot-distro curl -y
 
-# Detect architecture
+# Detect system architecture
 ARCH=$(detect_architecture)
 echo "Detected architecture: $ARCH"
 
-# Define download URLs
+# Define rootfs download URLs
 declare -A ROOTFS_URLS
 ROOTFS_URLS=(
     [amd64]="https://kali.download/nethunter-images/current/rootfs/kali-nethunter-rootfs-minimal-amd64.tar.xz"
@@ -37,7 +36,7 @@ ROOTFS_URLS=(
 
 # Download and extract rootfs
 ROOTFS_URL=${ROOTFS_URLS[$ARCH]}
-echo "Downloading rootfs from: $ROOTFS_URL"
+echo "Downloading rootfs for architecture: $ARCH"
 mkdir -p ~/kali-nethunter
 cd ~/kali-nethunter
 wget -O rootfs.tar.xz "$ROOTFS_URL"
@@ -46,38 +45,39 @@ echo "Extracting rootfs..."
 proot --link2symlink tar -xJf rootfs.tar.xz --exclude='dev' -C ~/kali-nethunter
 rm rootfs.tar.xz
 
-# Fix missing directories and binaries
+# Fix missing directories, binaries, and interpreters
 echo "Fixing missing directories and binaries..."
 mkdir -p ~/kali-nethunter/{root,proc,sys,dev,tmp,run,var/tmp}
 mkdir -p ~/kali-nethunter/bin ~/kali-nethunter/usr/bin ~/kali-nethunter/lib ~/kali-nethunter/lib64
-touch ~/kali-nethunter/usr/bin/env
-chmod +x ~/kali-nethunter/usr/bin/env
 
-# Add fallback for `/bin/bash` and `/usr/bin/env`
+# Create fallback for /bin/bash
+echo "Creating fallback for /bin/bash..."
 cat > ~/kali-nethunter/bin/bash << 'EOF'
 #!/bin/sh
 exec /usr/bin/env bash "$@"
 EOF
 chmod +x ~/kali-nethunter/bin/bash
 
+# Add a simple /usr/bin/env
+echo "Adding fallback for /usr/bin/env..."
 cat > ~/kali-nethunter/usr/bin/env << 'EOF'
 #!/bin/sh
 exec "$@"
 EOF
 chmod +x ~/kali-nethunter/usr/bin/env
 
-# Ensure Termux does not interfere with `proot`
+# Unset LD_PRELOAD (fix interference from Termux)
 unset LD_PRELOAD
 
-# Run fix script to initialize the rootfs
-echo "Running fix script to initialize the rootfs..."
+# Run initialization to resolve missing libraries
+echo "Initializing rootfs to resolve missing libraries..."
 proot --link2symlink -0 -r ~/kali-nethunter -b /dev -b /proc -b /sys -b /data/data/com.termux/files/home:/root -w /root /bin/bash << "EOC"
-apt update && apt install -y coreutils binutils wget curl bash
+apt update && apt install -y coreutils bash wget curl binutils
 exit
 EOC
 
-# Create the start script
-echo "Setting up NetHunter start script..."
+# Create a start script for NetHunter
+echo "Creating start script for NetHunter..."
 cat > start-nethunter.sh << 'EOF'
 #!/bin/bash
 unset LD_PRELOAD
