@@ -1,81 +1,76 @@
 #!/bin/bash
 
-R="$(printf '\033[1;31m')"
-G="$(printf '\033[1;32m')"
-Y="$(printf '\033[1;33m')"
-W="$(printf '\033[1;37m')"
-C="$(printf '\033[1;36m')"
-arch=$(uname -m)
+# Exit on any error
+set -e
 
-check_arch() {
-    case "$arch" in
-        x86_64)
-            rootfs_url="https://kali.download/nethunter-images/current/rootfs/kali-nethunter-rootfs-minimal-amd64.tar.xz"
-            ;;
-        aarch64)
-            rootfs_url="https://kali.download/nethunter-images/current/rootfs/kali-nethunter-rootfs-minimal-arm64.tar.xz"
-            ;;
-        armv7l)
-            rootfs_url="https://kali.download/nethunter-images/current/rootfs/kali-nethunter-rootfs-minimal-armhf.tar.xz"
-            ;;
-        i386)
-            rootfs_url="https://kali.download/nethunter-images/current/rootfs/kali-nethunter-rootfs-minimal-i386.tar.xz"
-            ;;
-        *)
-            echo -e "${R}Unsupported architecture: $arch${W}"
-            exit 1
-            ;;
+# Function to detect architecture
+detect_architecture() {
+    case $(uname -m) in
+        aarch64) echo "arm64";;
+        arm*) echo "armhf";;
+        x86_64) echo "amd64";;
+        i*86) echo "i386";;
+        *) echo "Unsupported architecture"; exit 1;;
     esac
 }
 
-downloader(){
-    path="$1"
-    [[ -e "$path" ]] && rm -rf "$path"
-    echo "Downloading $(basename $1)..."
-    curl --progress-bar --insecure --fail \
-         --retry-connrefused --retry 3 --retry-delay 2 \
-         --location --output ${path} "$2"
-}
+# Install required packages
+echo "Installing required packages..."
+pkg update -y
+pkg upgrade -y
+pkg install wget tar proot-distro proot openssh curl -y
 
-setup_rootfs(){
-    check_arch
-    echo -e "${G}Downloading the Kali Linux Root filesystem...${W}"
-    downloader "$HOME/kali-rootfs.tar.xz" "$rootfs_url"
-    echo -e "${G}Extracting the Root filesystem...${W}"
-    tar -xvf "$HOME/kali-rootfs.tar.xz" -C "$HOME/kali-rootfs"
-}
+# Detect architecture
+ARCH=$(detect_architecture)
+echo "Detected architecture: $ARCH"
 
-install_gui(){
-    echo -e "${G}Installing XFCE4 Desktop Environment...${W}"
-    pkg update -y
-    pkg install -y xfce4 xfce4-terminal tigervnc
-}
+# Define download URLs
+declare -A ROOTFS_URLS
+ROOTFS_URLS=(
+    [amd64]="https://kali.download/nethunter-images/current/rootfs/kali-nethunter-rootfs-minimal-amd64.tar.xz"
+    [arm64]="https://kali.download/nethunter-images/current/rootfs/kali-nethunter-rootfs-minimal-arm64.tar.xz"
+    [armhf]="https://kali.download/nethunter-images/current/rootfs/kali-nethunter-rootfs-minimal-armhf.tar.xz"
+    [i386]="https://kali.download/nethunter-images/current/rootfs/kali-nethunter-rootfs-minimal-i386.tar.xz"
+)
 
-setup_vnc(){
-    echo -e "${G}Setting up VNC Server...${W}"
-    mkdir -p "$HOME/.vnc"
-    vncserver :1
-    echo "VNC server started on :1. You can connect using a VNC viewer."
-}
+# Download and extract rootfs
+ROOTFS_URL=${ROOTFS_URLS[$ARCH]}
+echo "Downloading rootfs from: $ROOTFS_URL"
+mkdir -p ~/kali-nethunter
+cd ~/kali-nethunter
+wget -O rootfs.tar.xz "$ROOTFS_URL"
 
-start_kali(){
-    echo -e "${G}Starting Kali Linux in Termux...${W}"
-    cd "$HOME/kali-rootfs"
-    proot -S . /bin/bash --login
-}
+echo "Extracting rootfs..."
+proot --link2symlink tar -xJf rootfs.tar.xz --exclude='dev' -C ~/kali-nethunter
+rm rootfs.tar.xz
 
-finish_setup(){
-    echo -e "${G}Kali Linux Installation Complete!${W}"
-    echo -e "${G}You can start Kali Linux by running: ${C}start-kali${W}"
-}
+# Set up NetHunter
+echo "Setting up NetHunter..."
+cat > start-nethunter.sh << 'EOF'
+#!/bin/bash
+cd ~/kali-nethunter
+proot --link2symlink -0 -r ~/kali-nethunter -b /dev -b /proc -b /sys -w /root /usr/bin/env -i HOME=/root TERM="$TERM" LANG=C.UTF-8 PATH=/bin:/usr/bin:/sbin:/usr/sbin /bin/bash --login
+EOF
+chmod +x start-nethunter.sh
 
-main(){
-    setup_rootfs
-    install_gui
-    setup_vnc
-    finish_setup
-}
+# Install GUI and VNC server inside NetHunter
+echo "Installing GUI and VNC server..."
+./start-nethunter.sh << 'EOF'
+apt update && apt upgrade -y
+apt install xfce4 xfce4-goodies tightvncserver dbus-x11 kali-defaults kali-root-login -y
 
-# Start Kali Linux setup
-main
+# Add VNC aliases
+echo "export DISPLAY=:1" >> ~/.bashrc
+echo "alias vncstart='vncserver :1 -geometry 3840x2160 -depth 16 -localhost no'" >> ~/.bashrc
+echo "alias vncstop='vncserver -kill :1'" >> ~/.bashrc
+
+# Start the VNC server for initial setup
+vncserver :1 -geometry 3840x2160 -depth 16 -localhost no
+EOF
+
+echo "Installation complete!"
+echo "To start NetHunter, run: ./start-nethunter.sh"
+echo "Inside NetHunter, use the following commands:"
+echo "  vncstart - to start the VNC server"
+echo "  vncstop  - to stop the VNC server"
 
