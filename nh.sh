@@ -1,6 +1,8 @@
 #!/bin/bash
+# Kali NetHunter Installer Script v1.1
+# Author: Mahesh
+# Email: help@maheshtechnicals.com
 
-# Exit on any error
 set -e
 
 # Function to detect architecture
@@ -18,7 +20,7 @@ detect_architecture() {
 echo "Installing required packages..."
 pkg update -y
 pkg upgrade -y
-pkg install wget tar proot-distro proot openssh curl -y
+pkg install wget tar proot proot-distro curl -y
 
 # Detect architecture
 ARCH=$(detect_architecture)
@@ -44,7 +46,7 @@ echo "Extracting rootfs..."
 proot --link2symlink tar -xJf rootfs.tar.xz --exclude='dev' -C ~/kali-nethunter
 rm rootfs.tar.xz
 
-# Fix missing directories and files
+# Fix missing directories and binaries
 echo "Fixing missing directories and binaries..."
 mkdir -p ~/kali-nethunter/{root,proc,sys,dev,tmp,run,var/tmp,usr/bin}
 touch ~/kali-nethunter/usr/bin/env
@@ -56,12 +58,34 @@ cat > ~/kali-nethunter/usr/bin/env << 'EOF'
 exec "$@"
 EOF
 
-# Set up NetHunter
-echo "Setting up NetHunter..."
+# Bind required directories and set up environment
+cat > ~/kali-nethunter-fix.sh << 'EOF'
+#!/bin/bash
+cd ~/kali-nethunter
+proot --link2symlink -0 -r ~/kali-nethunter -b /dev -b /proc -b /sys -b /tmp -b /data/data/com.termux/files/home:/root -w /root /bin/bash << "EOC"
+# Install essential packages
+apt update && apt install -y coreutils binutils curl wget
+
+# Recreate the missing env file properly
+echo "Restoring /usr/bin/env..."
+rm -f /usr/bin/env
+apt install -y coreutils
+
+# Exit from the fix script
+exit
+EOC
+EOF
+
+chmod +x ~/kali-nethunter-fix.sh
+echo "Running fix script to resolve '/usr/bin/env' issue..."
+~/kali-nethunter-fix.sh
+
+# Create the start script
+echo "Setting up NetHunter start script..."
 cat > start-nethunter.sh << 'EOF'
 #!/bin/bash
 cd ~/kali-nethunter
-proot --link2symlink -0 -r ~/kali-nethunter -b /dev -b /proc -b /sys -w /root /usr/bin/env -i HOME=/root TERM="$TERM" LANG=C.UTF-8 PATH=/bin:/usr/bin:/sbin:/usr/sbin /bin/bash --login
+proot --link2symlink -0 -r ~/kali-nethunter -b /dev -b /proc -b /sys -b /data/data/com.termux/files/home:/root -w /root /usr/bin/env -i HOME=/root TERM="$TERM" LANG=C.UTF-8 PATH=/bin:/usr/bin:/sbin:/usr/sbin /bin/bash --login
 EOF
 chmod +x start-nethunter.sh
 
@@ -69,16 +93,15 @@ chmod +x start-nethunter.sh
 echo "Installing GUI and VNC server..."
 ./start-nethunter.sh << 'EOF'
 apt update && apt upgrade -y
-apt install xfce4 xfce4-goodies tightvncserver dbus-x11 kali-defaults kali-root-login -y
-
-# Add VNC aliases
+apt install -y xfce4 xfce4-goodies tightvncserver dbus-x11 kali-defaults kali-root-login
 echo "export DISPLAY=:1" >> ~/.bashrc
 echo "alias vncstart='vncserver :1 -geometry 3840x2160 -depth 16 -localhost no'" >> ~/.bashrc
 echo "alias vncstop='vncserver -kill :1'" >> ~/.bashrc
-
-# Start the VNC server for initial setup
 vncserver :1 -geometry 3840x2160 -depth 16 -localhost no
 EOF
+
+# Cleanup
+rm -f ~/kali-nethunter-fix.sh
 
 echo "Installation complete!"
 echo "To start NetHunter, run: ./start-nethunter.sh"
