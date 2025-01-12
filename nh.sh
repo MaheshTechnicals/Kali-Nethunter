@@ -1,5 +1,5 @@
 #!/bin/bash
-# Kali NetHunter Installer Script v1.1
+# Kali NetHunter Installer Script v1.2
 # Author: Mahesh
 # Email: help@maheshtechnicals.com
 
@@ -48,9 +48,10 @@ rm rootfs.tar.xz
 
 # Fix missing directories and binaries
 echo "Fixing missing directories and binaries..."
-mkdir -p ~/kali-nethunter/{root,proc,sys,dev,tmp,run,var/tmp,usr/bin}
+mkdir -p ~/kali-nethunter/{root,proc,sys,dev,tmp,run,var/tmp,usr/bin,bin}
 touch ~/kali-nethunter/usr/bin/env
-chmod +x ~/kali-nethunter/usr/bin/env
+touch ~/kali-nethunter/bin/bash
+chmod +x ~/kali-nethunter/usr/bin/env ~/kali-nethunter/bin/bash
 
 # Add a fallback for `env` to avoid issues
 cat > ~/kali-nethunter/usr/bin/env << 'EOF'
@@ -58,27 +59,18 @@ cat > ~/kali-nethunter/usr/bin/env << 'EOF'
 exec "$@"
 EOF
 
-# Bind required directories and set up environment
-cat > ~/kali-nethunter-fix.sh << 'EOF'
+# Add a fallback for `bash` to avoid issues
+cat > ~/kali-nethunter/bin/bash << 'EOF'
 #!/bin/bash
-cd ~/kali-nethunter
-proot --link2symlink -0 -r ~/kali-nethunter -b /dev -b /proc -b /sys -b /tmp -b /data/data/com.termux/files/home:/root -w /root /bin/bash << "EOC"
-# Install essential packages
-apt update && apt install -y coreutils binutils curl wget
-
-# Recreate the missing env file properly
-echo "Restoring /usr/bin/env..."
-rm -f /usr/bin/env
-apt install -y coreutils
-
-# Exit from the fix script
-exit
-EOC
+exec "$@"
 EOF
 
-chmod +x ~/kali-nethunter-fix.sh
-echo "Running fix script to resolve '/usr/bin/env' issue..."
-~/kali-nethunter-fix.sh
+# Run fix script to initialize the rootfs
+echo "Running fix script to initialize the rootfs..."
+proot --link2symlink -0 -r ~/kali-nethunter -b /dev -b /proc -b /sys -b /data/data/com.termux/files/home:/root -w /root /bin/bash << "EOC"
+apt update && apt install -y coreutils binutils wget curl
+exit
+EOC
 
 # Create the start script
 echo "Setting up NetHunter start script..."
@@ -99,9 +91,6 @@ echo "alias vncstart='vncserver :1 -geometry 3840x2160 -depth 16 -localhost no'"
 echo "alias vncstop='vncserver -kill :1'" >> ~/.bashrc
 vncserver :1 -geometry 3840x2160 -depth 16 -localhost no
 EOF
-
-# Cleanup
-rm -f ~/kali-nethunter-fix.sh
 
 echo "Installation complete!"
 echo "To start NetHunter, run: ./start-nethunter.sh"
