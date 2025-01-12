@@ -1,5 +1,5 @@
 #!/bin/bash
-# Kali NetHunter Installer Script v1.2
+# Kali NetHunter Installer Script v1.3
 # Author: Mahesh
 # Email: help@maheshtechnicals.com
 
@@ -65,6 +65,9 @@ cat > ~/kali-nethunter/bin/bash << 'EOF'
 exec "$@"
 EOF
 
+# Unset LD_PRELOAD to fix termux-exec interference
+unset LD_PRELOAD
+
 # Run fix script to initialize the rootfs
 echo "Running fix script to initialize the rootfs..."
 proot --link2symlink -0 -r ~/kali-nethunter -b /dev -b /proc -b /sys -b /data/data/com.termux/files/home:/root -w /root /bin/bash << "EOC"
@@ -76,6 +79,7 @@ EOC
 echo "Setting up NetHunter start script..."
 cat > start-nethunter.sh << 'EOF'
 #!/bin/bash
+unset LD_PRELOAD
 cd ~/kali-nethunter
 proot --link2symlink -0 -r ~/kali-nethunter -b /dev -b /proc -b /sys -b /data/data/com.termux/files/home:/root -w /root /usr/bin/env -i HOME=/root TERM="$TERM" LANG=C.UTF-8 PATH=/bin:/usr/bin:/sbin:/usr/sbin /bin/bash --login
 EOF
