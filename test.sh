@@ -142,7 +142,7 @@ install_pycharm() {
     local install_dir="/opt/pycharm"
 
     print_title "Downloading PyCharm"
-    wget "$pycharm_url" -O "$pycharm_tar"
+    wget --no-check-certificate "$pycharm_url" -O "$pycharm_tar"
     if [[ $? -ne 0 ]]; then
         echo -e "${RED}Download failed! Exiting...${RESET}"
         exit 1
@@ -217,7 +217,8 @@ while true; do
             break
             ;;
         *) 
-            echo -e "${RED}Invalid choice. Please try again.${RESET}"
+            echo -e "${RED}Invalid option! Please choose 1, 2, or 3.${RESET}"
+            sleep 2
             ;;
     esac
 done
