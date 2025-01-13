@@ -77,7 +77,16 @@ fetch_latest_pycharm_url() {
         exit 1
     fi
 
+    # Identify system architecture
+    local arch=$(uname -m)
+    if [[ "$arch" == "x86_64" ]]; then
+        latest_url=$(echo "$latest_url" | sed 's/-aarch64//')
+    elif [[ "$arch" == "aarch64" || "$arch" == "arm64" ]]; then
+        latest_url=$(echo "$latest_url" | sed 's/-x86_64//')
+    fi
+
     echo -e "${GREEN}Latest PyCharm Version: $latest_version${RESET}"
+    echo -e "${CYAN}Download URL: $latest_url${RESET}"
     echo "$latest_url"
 }
 
@@ -168,4 +177,3 @@ while true; do
             ;;
     esac
 done
-
