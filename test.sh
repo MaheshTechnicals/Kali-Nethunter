@@ -165,7 +165,27 @@ while true; do
     echo -e "${CYAN}#               Author: MaheshTechnicals                  #${RESET}"
     echo -e "${CYAN}############################################################${RESET}"
     echo -e "${YELLOW}1. Install PyCharm${RESET}"
-    echo -e "${YELLOW}2. Uninstall
-::contentReference[oaicite:0]{index=0}
- 
+    echo -e "${YELLOW}2. Uninstall PyCharm${RESET}"
+    echo -e "${YELLOW}3. Exit${RESET}"
+    echo -e "${YELLOW}Please choose an option: ${RESET}"
+    read -r choice
+
+    case $choice in
+        1) 
+            check_and_install_java
+            install_pv
+            install_pycharm
+            ;;
+        2) 
+            uninstall_pycharm
+            ;;
+        3) 
+            echo -e "${GREEN}Exiting...${RESET}"
+            break
+            ;;
+        *) 
+            echo -e "${RED}Invalid choice. Please try again.${RESET}"
+            ;;
+    esac
+done
 
