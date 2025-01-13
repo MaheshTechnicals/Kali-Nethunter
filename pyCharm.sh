@@ -27,9 +27,29 @@ print_title() {
     echo -e "${YELLOW}------------------------------------------------------------${RESET}"
 }
 
+# Function to check if Java 23 or higher is installed
+check_java_version() {
+    # Get the installed Java version
+    java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
+    
+    # Check if the version is 23 or higher
+    if [[ "$java_version" =~ ^(23|[2-9][0-9]) ]]; then
+        echo -e "${GREEN}Java version $java_version is already installed. Skipping installation.${RESET}"
+        return 1  # Java is already installed, no need to install
+    else
+        return 0  # Java is not installed or version is lower than 23
+    fi
+}
+
 # Function to install Java 23
 install_java() {
     print_title "Installing Java 23..."
+
+    # Check if Java 23 or higher is already installed
+    check_java_version
+    if [[ $? -eq 1 ]]; then
+        return  # Skip Java installation if it's already installed
+    fi
 
     # Check system architecture
     ARCH=$(uname -m)
@@ -103,16 +123,54 @@ install_pv() {
     fi
 }
 
-# Function to install PyCharm
-install_pycharm() {
-    install_java  # Call Java installation function
+# Function to install jq
+install_jq() {
+    # Check if jq is installed, install if not
+    if ! command -v jq &> /dev/null; then
+        echo -e "${YELLOW}jq not found, installing jq...${RESET}"
+        sudo apt update && sudo apt install -y jq
+        if [[ $? -eq 0 ]]; then
+            echo -e "${GREEN}jq has been installed successfully!${RESET}"
+        else
+            echo -e "${RED}Error: jq installation failed.${RESET}"
+            exit 1
+        fi
+    else
+        echo -e "${GREEN}jq is already installed.${RESET}"
+    fi
+}
 
-    local pycharm_url="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1.tar.gz"
+# Function to install PyCharm dynamically
+install_pycharm() {
+    # Install Java if needed
+    install_java
+
+    # Install jq if not installed
+    install_jq
+
+    # Fetch data from the JetBrains API
+    response=$(curl -s 'https://data.services.jetbrains.com/products/releases?code=PCC&latest=true&type=release')
+    
+    # Check if the request was successful
+    if [[ $? -ne 0 ]]; then
+        echo "Network request failed"
+        exit 1
+    fi
+
+    # Parse the JSON response using jq
+    version=$(echo "$response" | jq -r '.PCC[0].version' | xargs)  # Trim the version string
+    download_url=$(echo "$response" | jq -r '.PCC[0].downloads.linuxARM64.link' | xargs)  # Trim the URL
+
+    # Output the fetched version with stylish title
+    print_title "Latest PyCharm Version: $version"
+    echo "Download URL: $download_url"
+
+    # Download the latest PyCharm
     local pycharm_tar="pycharm.tar.gz"
     local install_dir="/opt/pycharm"
 
     print_title "Downloading PyCharm"
-    wget "$pycharm_url" -O "$pycharm_tar"
+    wget "$download_url" -O "$pycharm_tar"
     if [[ $? -ne 0 ]]; then
         echo -e "${RED}Download failed! Exiting...${RESET}"
         exit 1
@@ -141,6 +199,7 @@ StartupNotify=true
 EOF
 
     echo -e "${GREEN}PyCharm has been installed successfully!${RESET}"
+    exit 0  # Exit the script after successful installation
 }
 
 # Function to uninstall PyCharm
@@ -157,6 +216,7 @@ uninstall_pycharm() {
     sudo rm -f /usr/share/applications/pycharm.desktop
 
     echo -e "${GREEN}PyCharm has been uninstalled successfully!${RESET}"
+    exit 0  # Exit the script after successful uninstallation
 }
 
 # Display menu
@@ -166,28 +226,25 @@ while true; do
     echo -e "${CYAN}#                    PyCharm Installer                     #${RESET}"
     echo -e "${CYAN}#               Author: MaheshTechnicals                  #${RESET}"
     echo -e "${CYAN}############################################################${RESET}"
+
     echo -e "${YELLOW}1. Install PyCharm${RESET}"
     echo -e "${YELLOW}2. Uninstall PyCharm${RESET}"
     echo -e "${YELLOW}3. Exit${RESET}"
-    echo -n -e "${CYAN}Enter your choice: ${RESET}"
-    read -r choice
 
+    read -p "Choose an option: " choice
     case $choice in
-        1)
-            install_pv
+        1) 
             install_pycharm
-            read -r -p "Press any key to continue..."
             ;;
         2)
             uninstall_pycharm
-            read -r -p "Press any key to continue..."
             ;;
         3)
-            echo -e "${YELLOW}Exiting. Goodbye!${RESET}"
             exit 0
             ;;
         *)
-            echo -e "${RED}Invalid option. Please try again.${RESET}"
+            echo -e "${RED}Invalid choice. Please try again.${RESET}"
+            read -r -p "Press any key to continue..."
             ;;
     esac
 done
