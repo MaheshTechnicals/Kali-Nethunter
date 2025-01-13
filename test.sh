@@ -27,22 +27,36 @@ print_title() {
     echo -e "${YELLOW}------------------------------------------------------------${RESET}"
 }
 
-# Function to fetch the latest PyCharm version dynamically
-fetch_latest_pycharm_url() {
-    local base_url="https://data.services.jetbrains.com/products/releases?code=PCP&latest=true&type=release"
-    local pycharm_json
-    local latest_version
-
-    echo -e "${CYAN}Fetching the latest PyCharm version...${RESET}"
-    pycharm_json=$(curl -s "$base_url")
-    if [[ -z "$pycharm_json" ]]; then
-        echo -e "${RED}Failed to fetch the latest PyCharm version.${RESET}"
+# Function to fetch the latest PyCharm version from the website
+get_latest_pycharm_version() {
+    print_title "Fetching Latest PyCharm Version..."
+    latest_version=$(curl -s https://data.services.jetbrains.com/products/releases?code=PCC | grep -oP '(?<="version":")[^"]*' | head -n 1)
+    if [[ -z "$latest_version" ]]; then
+        echo -e "${RED}Error: Unable to fetch the latest PyCharm version.${RESET}"
         exit 1
     fi
+    echo -e "${GREEN}Latest PyCharm Version: $latest_version${RESET}"
+    echo "$latest_version"
+}
 
-    latest_version=$(echo "$pycharm_json" | grep -oP '"version":"\K[^"]+')
-    echo -e "${CYAN}Latest version fetched: ${GREEN}$latest_version${RESET}"
-    echo "https://download.jetbrains.com/python/pycharm-community-${latest_version}.tar.gz"
+# Function to detect architecture and build PyCharm download URL
+get_pycharm_url() {
+    local base_url="https://download.jetbrains.com/python"
+    local version=$1
+    local arch=$(uname -m)
+
+    case "$arch" in
+        x86_64)
+            echo "$base_url/pycharm-community-${version}.tar.gz"
+            ;;
+        aarch64)
+            echo "$base_url/pycharm-community-${version}-aarch64.tar.gz"
+            ;;
+        *)
+            echo -e "${RED}Unsupported architecture: $arch. Exiting...${RESET}"
+            exit 1
+            ;;
+    esac
 }
 
 # Function to install Java 23
@@ -60,49 +74,31 @@ install_java() {
         exit 1
     fi
 
-    # Download Java
+    # Download and install Java
     echo -e "${YELLOW}Downloading Java from $JAVA_URL...${RESET}"
     wget "$JAVA_URL" -O openjdk-23.tar.gz --progress=bar
-    if [[ $? -ne 0 ]]; then
-        echo -e "${RED}Error: Failed to download Java.${RESET}"
-        exit 1
-    fi
-
-    # Create /usr/lib/jvm directory if it doesn't exist
-    echo -e "${CYAN}Creating /usr/lib/jvm directory...${RESET}"
     sudo mkdir -p /usr/lib/jvm
-
-    # Extract Java
-    echo -e "${CYAN}Extracting Java...${RESET}"
     sudo tar -xzf openjdk-23.tar.gz -C /usr/lib/jvm
-    if [[ $? -ne 0 ]]; then
-        echo -e "${RED}Error: Failed to extract Java.${RESET}"
-        exit 1
-    fi
-
-    # Find the extracted Java directory
     JAVA_DIR=$(tar -tf openjdk-23.tar.gz | head -n 1 | cut -f1 -d"/")
     JAVA_PATH="/usr/lib/jvm/$JAVA_DIR"
-
-    # Set up Java alternatives
-    echo -e "${CYAN}Setting up Java alternatives...${RESET}"
     sudo update-alternatives --install /usr/bin/java java "$JAVA_PATH/bin/java" 1
     sudo update-alternatives --set java "$JAVA_PATH/bin/java"
-
-    # Clean up
     rm -f openjdk-23.tar.gz
-    echo -e "${GREEN}Java 23 has been installed successfully!${RESET}"
-
-    # Display installed Java version
-    java -version
+    echo -e "${GREEN}Java 23 installed successfully!${RESET}"
 }
 
 # Function to install PyCharm
 install_pycharm() {
     install_java  # Call Java installation function
 
+    # Fetch the latest version of PyCharm
+    local latest_version
+    latest_version=$(get_latest_pycharm_version)
+
+    # Build the download URL based on architecture
     local pycharm_url
-    pycharm_url=$(fetch_latest_pycharm_url)
+    pycharm_url=$(get_pycharm_url "$latest_version")
+
     local pycharm_tar="pycharm.tar.gz"
     local install_dir="/opt/pycharm"
 
@@ -116,7 +112,7 @@ install_pycharm() {
     print_title "Extracting PyCharm"
     sudo rm -rf "$install_dir"
     sudo mkdir -p "$install_dir"
-    pv "$pycharm_tar" | sudo tar -xz --strip-components=1 -C "$install_dir"
+    sudo tar -xzf "$pycharm_tar" -C "$install_dir" --strip-components=1
     rm -f "$pycharm_tar"
 
     print_title "Creating Symbolic Link"
