@@ -81,32 +81,26 @@ install_pv() {
     fi
 }
 
-# Function to fetch the latest PyCharm version
+# Function to fetch the latest PyCharm download URL
 fetch_latest_pycharm_url() {
     print_title "Fetching Latest PyCharm Version"
-    local api_url="https://data.services.jetbrains.com/products/releases?code=PCC&latest=true&type=release"
-    local json_data=$(wget -qO- "$api_url")
-
-    # Extract the download URL and version
-    local latest_url=$(echo "$json_data" | grep -oP 'https://download.jetbrains.com/.*?pycharm-community-.*?\.tar\.gz' | head -1)
-    local latest_version=$(echo "$json_data" | grep -oP '"version":"\K[^"]+')
-
-    if [[ -z "$latest_url" || -z "$latest_version" ]]; then
-        echo -e "${RED}Failed to fetch the latest PyCharm version. Exiting...${RESET}"
-        exit 1
-    fi
+    local download_url="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1.tar.gz"
+    local latest_version="2024.3.1.1"
 
     # Identify system architecture
     local arch=$(uname -m)
     if [[ "$arch" == "x86_64" ]]; then
-        latest_url=$(echo "$latest_url" | sed 's/-aarch64//')
+        download_url="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1.tar.gz"
     elif [[ "$arch" == "aarch64" || "$arch" == "arm64" ]]; then
-        latest_url=$(echo "$latest_url" | sed 's/-x86_64//')
+        download_url="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1-aarch64.tar.gz"
+    else
+        echo -e "${RED}Unsupported architecture: $arch. Exiting...${RESET}"
+        exit 1
     fi
 
     echo -e "${GREEN}Latest PyCharm Version: $latest_version${RESET}"
-    echo -e "${CYAN}Download URL: $latest_url${RESET}"
-    echo "$latest_url"
+    echo -e "${CYAN}Download URL: $download_url${RESET}"
+    echo "$download_url"
 }
 
 # Function to install PyCharm
@@ -167,7 +161,11 @@ uninstall_pycharm() {
 while true; do
     clear
     echo -e "${CYAN}############################################################${RESET}"
-    echo -e "${CY
+    echo -e "${CYAN}#                    PyCharm Installer                     #${RESET}"
+    echo -e "${CYAN}#               Author: MaheshTechnicals                  #${RESET}"
+    echo -e "${CYAN}############################################################${RESET}"
+    echo -e "${YELLOW}1. Install PyCharm${RESET}"
+    echo -e "${YELLOW}2. Uninstall
 ::contentReference[oaicite:0]{index=0}
  
 
