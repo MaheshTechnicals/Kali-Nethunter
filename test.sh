@@ -199,6 +199,7 @@ StartupNotify=true
 EOF
 
     echo -e "${GREEN}PyCharm has been installed successfully!${RESET}"
+    exit 0  # Exit the script after successful installation
 }
 
 # Function to uninstall PyCharm
@@ -215,6 +216,7 @@ uninstall_pycharm() {
     sudo rm -f /usr/share/applications/pycharm.desktop
 
     echo -e "${GREEN}PyCharm has been uninstalled successfully!${RESET}"
+    exit 0  # Exit the script after successful uninstallation
 }
 
 # Display menu
@@ -224,6 +226,7 @@ while true; do
     echo -e "${CYAN}#                    PyCharm Installer                     #${RESET}"
     echo -e "${CYAN}#               Author: MaheshTechnicals                  #${RESET}"
     echo -e "${CYAN}############################################################${RESET}"
+
     echo -e "${YELLOW}1. Install PyCharm${RESET}"
     echo -e "${YELLOW}2. Uninstall PyCharm${RESET}"
     echo -e "${YELLOW}3. Exit${RESET}"
