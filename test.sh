@@ -62,6 +62,25 @@ check_and_install_java() {
     echo -e "${GREEN}Java 23 or higher has been installed successfully!${RESET}"
 }
 
+# Function to install pv command (for progress visualization)
+install_pv() {
+    print_title "Installing pv command"
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get install -y pv
+    elif command -v yum &>/dev/null; then
+        sudo yum install -y pv
+    elif command -v dnf &>/dev/null; then
+        sudo dnf install -y pv
+    elif command -v pacman &>/dev/null; then
+        sudo pacman -S --noconfirm pv
+    elif command -v zypper &>/dev/null; then
+        sudo zypper install -y pv
+    else
+        echo -e "${RED}Unsupported package manager. Please install pv manually.${RESET}"
+        exit 1
+    fi
+}
+
 # Function to fetch the latest PyCharm version
 fetch_latest_pycharm_url() {
     print_title "Fetching Latest PyCharm Version"
@@ -177,3 +196,4 @@ while true; do
             ;;
     esac
 done
+
