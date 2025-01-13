@@ -26,7 +26,10 @@ install_java() {
 # Function to fetch the latest PyCharm version from the website
 get_latest_pycharm_version() {
     print_title "Fetching Latest PyCharm Version..."
-    latest_version=$(curl -s https://data.services.jetbrains.com/products/releases?code=PCC | grep -oP '(?<="version":")[^"]*' | head -n 1)
+
+    # Fetch the JSON response and extract the latest version without escape codes
+    latest_version=$(curl -s https://data.services.jetbrains.com/products/releases?code=PCC | grep -oP '"version":"\K[^"]+' | head -n 1)
+
     if [[ -z "$latest_version" ]]; then
         echo -e "\033[1;31mError: Unable to fetch the latest PyCharm version.\033[0m"
         exit 1
