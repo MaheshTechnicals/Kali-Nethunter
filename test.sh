@@ -81,12 +81,31 @@ install_pv() {
     fi
 }
 
-# Function to fetch the latest PyCharm version dynamically
+# Function to install jq command (for JSON parsing)
+install_jq() {
+    print_title "Installing jq command"
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get install -y jq
+    elif command -v yum &>/dev/null; then
+        sudo yum install -y jq
+    elif command -v dnf &>/dev/null; then
+        sudo dnf install -y jq
+    elif command -v pacman &>/dev/null; then
+        sudo pacman -S --noconfirm jq
+    elif command -v zypper &>/dev/null; then
+        sudo zypper install -y jq
+    else
+        echo -e "${RED}Unsupported package manager. Please install jq manually.${RESET}"
+        exit 1
+    fi
+}
+
+# Function to fetch the latest PyCharm version dynamically from JetBrains API
 fetch_latest_pycharm_version() {
     print_title "Fetching Latest PyCharm Version"
-    
-    # You can fetch the latest version dynamically from a repository or page (example using a placeholder for now)
-    latest_version=$(curl -s https://www.jetbrains.com/pycharm/download/#section=linux | grep -oP 'pycharm-community-\K[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?' | head -n 1)
+
+    # Fetch the latest PyCharm version from the JetBrains repository (This is a known stable URL)
+    latest_version=$(curl -s https://data.services.jetbrains.com/products/releases?code=PC&latest=true&type=release | jq -r '.[0].version')
 
     if [[ -z "$latest_version" ]]; then
         echo -e "${RED}Failed to fetch the latest PyCharm version. Exiting...${RESET}"
@@ -187,6 +206,7 @@ while true; do
         1) 
             check_and_install_java
             install_pv
+            install_jq
             install_pycharm
             ;;
         2) 
