@@ -61,7 +61,7 @@ install_pycharm() {
 
     # Fetch the latest version of PyCharm
     local latest_version
-    latest_version=$(get_latest_pycharm_version | tr -d '\033')  # Remove any escape characters
+    latest_version=$(get_latest_pycharm_version)
 
     # Build the download URL based on architecture
     local pycharm_url
