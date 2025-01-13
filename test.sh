@@ -27,30 +27,26 @@ print_title() {
     echo -e "${YELLOW}------------------------------------------------------------${RESET}"
 }
 
-# Function to check Java version
-check_java_version() {
-    if command -v java >/dev/null 2>&1; then
-        # Get Java version
-        java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F '.' '{print $1}')
-        
-        # Check if version is 23 or higher
-        if [ -n "$java_version" ] && [ "$java_version" -ge 23 ]; then
-            return 0  # Java 23 or higher is installed
-        fi
+# Function to fetch the latest PyCharm version dynamically
+fetch_latest_pycharm_url() {
+    local base_url="https://data.services.jetbrains.com/products/releases?code=PCP&latest=true&type=release"
+    local pycharm_json
+    local latest_version
+
+    echo -e "${CYAN}Fetching the latest PyCharm version...${RESET}"
+    pycharm_json=$(curl -s "$base_url")
+    if [[ -z "$pycharm_json" ]]; then
+        echo -e "${RED}Failed to fetch the latest PyCharm version.${RESET}"
+        exit 1
     fi
-    return 1  # Java not installed or version < 23
+
+    latest_version=$(echo "$pycharm_json" | grep -oP '"version":"\K[^"]+')
+    echo -e "${CYAN}Latest version fetched: ${GREEN}$latest_version${RESET}"
+    echo "https://download.jetbrains.com/python/pycharm-community-${latest_version}.tar.gz"
 }
 
 # Function to install Java 23
 install_java() {
-    print_title "Checking Java Installation..."
-
-    if check_java_version; then
-        echo -e "${GREEN}Java 23 or higher is already installed.${RESET}"
-        java -version
-        return 0
-    fi
-
     print_title "Installing Java 23..."
 
     # Check system architecture
@@ -101,28 +97,92 @@ install_java() {
     java -version
 }
 
-# Function to fetch the latest PyCharm version and construct the download URL
-get_latest_pycharm_url() {
-    local BASE_URL="https://download.jetbrains.com/python/pycharm-community-"
-    print_title "Fetching Latest PyCharm Version"
+# Function to install PyCharm
+install_pycharm() {
+    install_java  # Call Java installation function
 
-    # Check if curl is installed
-    if ! command -v curl &>/dev/null; then
-        echo -e "${RED}Curl not installed! Please install curl and try again.${RESET}"
+    local pycharm_url
+    pycharm_url=$(fetch_latest_pycharm_url)
+    local pycharm_tar="pycharm.tar.gz"
+    local install_dir="/opt/pycharm"
+
+    print_title "Downloading PyCharm"
+    wget "$pycharm_url" -O "$pycharm_tar"
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED}Download failed! Exiting...${RESET}"
         exit 1
     fi
 
-    # Fetch the latest version information
-    echo -e "${CYAN}Fetching version info from JetBrains...${RESET}"
-    local response=$(curl -s "https://data.services.jetbrains.com/products/releases?code=PCC&latest=true&type=release")
-    local version=$(echo "$response" | grep -o '"version":"[^"]*"' | head -n 1 | cut -d'"' -f4)
+    print_title "Extracting PyCharm"
+    sudo rm -rf "$install_dir"
+    sudo mkdir -p "$install_dir"
+    pv "$pycharm_tar" | sudo tar -xz --strip-components=1 -C "$install_dir"
+    rm -f "$pycharm_tar"
 
-    if [ -z "$version" ]; then
-        echo -e "${RED}Failed to fetch the latest version. Exiting.${RESET}"
-        exit 1
-    fi
+    print_title "Creating Symbolic Link"
+    sudo ln -sf "$install_dir/bin/pycharm.sh" /usr/local/bin/pycharm
 
-    echo -e "${GREEN}Latest PyCharm version: $version${RESET}"
-    echo "${BASE_URL}${version}.tar.gz"
+    print_title "Creating Desktop Entry"
+    cat << EOF | sudo tee /usr/share/applications/pycharm.desktop > /dev/null
+[Desktop Entry]
+Name=PyCharm
+Comment=Integrated Development Environment for Python
+Exec=$install_dir/bin/pycharm.sh %f
+Icon=$install_dir/bin/pycharm.png
+Terminal=false
+Type=Application
+Categories=Development;IDE;
+StartupNotify=true
+EOF
+
+    echo -e "${GREEN}PyCharm has been installed successfully!${RESET}"
 }
+
+# Function to uninstall PyCharm
+uninstall_pycharm() {
+    local install_dir="/opt/pycharm"
+
+    print_title "Removing PyCharm Installation"
+    sudo rm -rf "$install_dir"
+
+    print_title "Removing Symbolic Link"
+    sudo rm -f /usr/local/bin/pycharm
+
+    print_title "Removing Desktop Entry"
+    sudo rm -f /usr/share/applications/pycharm.desktop
+
+    echo -e "${GREEN}PyCharm has been uninstalled successfully!${RESET}"
+}
+
+# Display menu
+while true; do
+    clear
+    echo -e "${CYAN}############################################################${RESET}"
+    echo -e "${CYAN}#                    PyCharm Installer                     #${RESET}"
+    echo -e "${CYAN}#               Author: MaheshTechnicals                  #${RESET}"
+    echo -e "${CYAN}############################################################${RESET}"
+    echo -e "${YELLOW}1. Install PyCharm${RESET}"
+    echo -e "${YELLOW}2. Uninstall PyCharm${RESET}"
+    echo -e "${YELLOW}3. Exit${RESET}"
+    echo -n -e "${CYAN}Enter your choice: ${RESET}"
+    read -r choice
+
+    case $choice in
+        1)
+            install_pycharm
+            read -r -p "Press any key to continue..."
+            ;;
+        2)
+            uninstall_pycharm
+            read -r -p "Press any key to continue..."
+            ;;
+        3)
+            echo -e "${YELLOW}Exiting. Goodbye!${RESET}"
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Invalid option. Please try again.${RESET}"
+            ;;
+    esac
+done
 
