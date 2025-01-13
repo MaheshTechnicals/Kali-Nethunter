@@ -167,33 +167,7 @@ uninstall_pycharm() {
 while true; do
     clear
     echo -e "${CYAN}############################################################${RESET}"
-    echo -e "${CYAN}#                    PyCharm Installer                     #${RESET}"
-    echo -e "${CYAN}#               Author: MaheshTechnicals                  #${RESET}"
-    echo -e "${CYAN}############################################################${RESET}"
-    echo -e "${YELLOW}1. Install PyCharm${RESET}"
-    echo -e "${YELLOW}2. Uninstall PyCharm${RESET}"
-    echo -e "${YELLOW}3. Exit${RESET}"
-    echo -n -e "${CYAN}Enter your choice: ${RESET}"
-    read -r choice
-
-    case $choice in
-        1)
-            check_and_install_java
-            install_pv
-            install_pycharm
-            read -r -p "Press any key to continue..."
-            ;;
-        2)
-            uninstall_pycharm
-            read -r -p "Press any key to continue..."
-            ;;
-        3)
-            echo -e "${YELLOW}Exiting. Goodbye!${RESET}"
-            exit 0
-            ;;
-        *)
-            echo -e "${RED}Invalid option. Please try again.${RESET}"
-            ;;
-    esac
-done
+    echo -e "${CY
+::contentReference[oaicite:0]{index=0}
+ 
 
