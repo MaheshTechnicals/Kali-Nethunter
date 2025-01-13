@@ -81,31 +81,44 @@ install_pv() {
     fi
 }
 
-# Function to fetch the latest PyCharm download URL
-fetch_latest_pycharm_url() {
+# Function to fetch the latest PyCharm version dynamically
+fetch_latest_pycharm_version() {
     print_title "Fetching Latest PyCharm Version"
-    local download_url="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1.tar.gz"
-    local latest_version="2024.3.1.1"
+    
+    # You can fetch the latest version dynamically from a repository or page (example using a placeholder for now)
+    latest_version=$(curl -s https://www.jetbrains.com/pycharm/download/#section=linux | grep -oP 'pycharm-community-\K[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?' | head -n 1)
 
-    # Identify system architecture
+    if [[ -z "$latest_version" ]]; then
+        echo -e "${RED}Failed to fetch the latest PyCharm version. Exiting...${RESET}"
+        exit 1
+    fi
+
+    echo -e "${GREEN}Latest PyCharm Version: $latest_version${RESET}"
+}
+
+# Function to fetch the PyCharm download URL dynamically
+fetch_pycharm_url() {
+    # Ensure the latest version is fetched before proceeding
+    fetch_latest_pycharm_version
+
+    # Identify system architecture and set the download URL accordingly
     local arch=$(uname -m)
     if [[ "$arch" == "x86_64" ]]; then
-        download_url="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1.tar.gz"
+        download_url="https://download-cf.jetbrains.com/python/pycharm-community-${latest_version}.tar.gz"
     elif [[ "$arch" == "aarch64" || "$arch" == "arm64" ]]; then
-        download_url="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1-aarch64.tar.gz"
+        download_url="https://download-cf.jetbrains.com/python/pycharm-community-${latest_version}-aarch64.tar.gz"
     else
         echo -e "${RED}Unsupported architecture: $arch. Exiting...${RESET}"
         exit 1
     fi
 
-    echo -e "${GREEN}Latest PyCharm Version: $latest_version${RESET}"
     echo -e "${CYAN}Download URL: $download_url${RESET}"
     echo "$download_url"
 }
 
 # Function to install PyCharm
 install_pycharm() {
-    local pycharm_url=$(fetch_latest_pycharm_url)
+    local pycharm_url=$(fetch_pycharm_url)
     local pycharm_tar="pycharm.tar.gz"
     local install_dir="/opt/pycharm"
 
