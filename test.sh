@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 #===============================#
@@ -25,6 +26,53 @@ print_title() {
     echo -e "${YELLOW}------------------------------------------------------------${RESET}"
     echo -e "${CYAN}$1${RESET}"
     echo -e "${YELLOW}------------------------------------------------------------${RESET}"
+}
+
+# Function to check if Java 23 or higher is installed
+check_java_version() {
+    print_title "Checking Java Installation..."
+    if command -v java >/dev/null 2>&1; then
+        java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
+        major_version=$(echo "$java_version" | cut -d'.' -f1)
+        if [[ "$major_version" -ge 23 ]]; then
+            echo -e "${GREEN}Java version $java_version detected. Skipping Java installation.${RESET}"
+            return 0
+        fi
+    fi
+    echo -e "${YELLOW}Java 23 or higher not found. Proceeding with installation...${RESET}"
+    return 1
+}
+
+# Function to install Java 23
+install_java() {
+    if check_java_version; then
+        return  # Skip installation if Java 23+ is already installed
+    fi
+
+    print_title "Installing Java 23..."
+
+    # Check system architecture
+    ARCH=$(uname -m)
+    if [[ "$ARCH" == "x86_64" ]]; then
+        JAVA_URL="https://download.java.net/java/GA/jdk23.0.1/c28985cbf10d4e648e4004050f8781aa/11/GPL/openjdk-23.0.1_linux-x64_bin.tar.gz"
+    elif [[ "$ARCH" == "aarch64" ]]; then
+        JAVA_URL="https://download.java.net/java/GA/jdk23.0.1/c28985cbf10d4e648e4004050f8781aa/11/GPL/openjdk-23.0.1_linux-aarch64_bin.tar.gz"
+    else
+        echo -e "${RED}Unsupported architecture: $ARCH. Exiting...${RESET}"
+        exit 1
+    fi
+
+    # Download and install Java
+    echo -e "${YELLOW}Downloading Java from $JAVA_URL...${RESET}"
+    wget "$JAVA_URL" -O openjdk-23.tar.gz --progress=bar
+    sudo mkdir -p /usr/lib/jvm
+    sudo tar -xzf openjdk-23.tar.gz -C /usr/lib/jvm
+    JAVA_DIR=$(tar -tf openjdk-23.tar.gz | head -n 1 | cut -f1 -d"/")
+    JAVA_PATH="/usr/lib/jvm/$JAVA_DIR"
+    sudo update-alternatives --install /usr/bin/java java "$JAVA_PATH/bin/java" 1
+    sudo update-alternatives --set java "$JAVA_PATH/bin/java"
+    rm -f openjdk-23.tar.gz
+    echo -e "${GREEN}Java 23 installed successfully!${RESET}"
 }
 
 # Function to fetch the latest PyCharm version from the website
@@ -57,34 +105,6 @@ get_pycharm_url() {
             exit 1
             ;;
     esac
-}
-
-# Function to install Java 23
-install_java() {
-    print_title "Installing Java 23..."
-
-    # Check system architecture
-    ARCH=$(uname -m)
-    if [[ "$ARCH" == "x86_64" ]]; then
-        JAVA_URL="https://download.java.net/java/GA/jdk23.0.1/c28985cbf10d4e648e4004050f8781aa/11/GPL/openjdk-23.0.1_linux-x64_bin.tar.gz"
-    elif [[ "$ARCH" == "aarch64" ]]; then
-        JAVA_URL="https://download.java.net/java/GA/jdk23.0.1/c28985cbf10d4e648e4004050f8781aa/11/GPL/openjdk-23.0.1_linux-aarch64_bin.tar.gz"
-    else
-        echo -e "${RED}Unsupported architecture: $ARCH. Exiting...${RESET}"
-        exit 1
-    fi
-
-    # Download and install Java
-    echo -e "${YELLOW}Downloading Java from $JAVA_URL...${RESET}"
-    wget "$JAVA_URL" -O openjdk-23.tar.gz --progress=bar
-    sudo mkdir -p /usr/lib/jvm
-    sudo tar -xzf openjdk-23.tar.gz -C /usr/lib/jvm
-    JAVA_DIR=$(tar -tf openjdk-23.tar.gz | head -n 1 | cut -f1 -d"/")
-    JAVA_PATH="/usr/lib/jvm/$JAVA_DIR"
-    sudo update-alternatives --install /usr/bin/java java "$JAVA_PATH/bin/java" 1
-    sudo update-alternatives --set java "$JAVA_PATH/bin/java"
-    rm -f openjdk-23.tar.gz
-    echo -e "${GREEN}Java 23 installed successfully!${RESET}"
 }
 
 # Function to install PyCharm
@@ -181,4 +201,3 @@ while true; do
             ;;
     esac
 done
-
