@@ -62,33 +62,28 @@ check_and_install_java() {
     echo -e "${GREEN}Java 23 or higher has been installed successfully!${RESET}"
 }
 
-# Function to install pv utility
-install_pv() {
-    print_title "Installing pv Utility"
-    if command -v pv &>/dev/null; then
-        echo -e "${GREEN}pv is already installed.${RESET}"
-        return
-    fi
-    if command -v apt-get &>/dev/null; then
-        sudo apt-get update
-        sudo apt-get install -y pv
-    elif command -v yum &>/dev/null; then
-        sudo yum install -y pv
-    elif command -v dnf &>/dev/null; then
-        sudo dnf install -y pv
-    elif command -v pacman &>/dev/null; then
-        sudo pacman -S --noconfirm pv
-    elif command -v zypper &>/dev/null; then
-        sudo zypper install -y pv
-    else
-        echo -e "${RED}Unsupported package manager. Please install pv manually.${RESET}"
+# Function to fetch the latest PyCharm version
+fetch_latest_pycharm_url() {
+    print_title "Fetching Latest PyCharm Version"
+    local api_url="https://data.services.jetbrains.com/products/releases?code=PCC&latest=true&type=release"
+    local json_data=$(wget -qO- "$api_url")
+
+    # Extract the download URL and version
+    local latest_url=$(echo "$json_data" | grep -oP 'https://download.jetbrains.com/.*?pycharm-community-.*?\.tar\.gz' | head -1)
+    local latest_version=$(echo "$json_data" | grep -oP '"version":"\K[^"]+')
+
+    if [[ -z "$latest_url" || -z "$latest_version" ]]; then
+        echo -e "${RED}Failed to fetch the latest PyCharm version. Exiting...${RESET}"
         exit 1
     fi
+
+    echo -e "${GREEN}Latest PyCharm Version: $latest_version${RESET}"
+    echo "$latest_url"
 }
 
 # Function to install PyCharm
 install_pycharm() {
-    local pycharm_url="https://download.jetbrains.com/python/pycharm-community-2024.3.1.1.tar.gz"
+    local pycharm_url=$(fetch_latest_pycharm_url)
     local pycharm_tar="pycharm.tar.gz"
     local install_dir="/opt/pycharm"
 
@@ -173,3 +168,4 @@ while true; do
             ;;
     esac
 done
+
