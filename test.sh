@@ -123,16 +123,30 @@ install_pv() {
     fi
 }
 
+# Function to install jq
+install_jq() {
+    # Check if jq is installed, install if not
+    if ! command -v jq &> /dev/null; then
+        echo -e "${YELLOW}jq not found, installing jq...${RESET}"
+        sudo apt update && sudo apt install -y jq
+        if [[ $? -eq 0 ]]; then
+            echo -e "${GREEN}jq has been installed successfully!${RESET}"
+        else
+            echo -e "${RED}Error: jq installation failed.${RESET}"
+            exit 1
+        fi
+    else
+        echo -e "${GREEN}jq is already installed.${RESET}"
+    fi
+}
+
 # Function to install PyCharm dynamically
 install_pycharm() {
     # Install Java if needed
     install_java
 
-    # Check if jq is installed, install if not
-    if ! command -v jq &> /dev/null; then
-        echo "jq not found, installing jq..."
-        sudo apt update && sudo apt install -y jq
-    fi
+    # Install jq if not installed
+    install_jq
 
     # Fetch data from the JetBrains API
     response=$(curl -s 'https://data.services.jetbrains.com/products/releases?code=PCC&latest=true&type=release')
@@ -213,18 +227,14 @@ while true; do
     echo -e "${YELLOW}1. Install PyCharm${RESET}"
     echo -e "${YELLOW}2. Uninstall PyCharm${RESET}"
     echo -e "${YELLOW}3. Exit${RESET}"
-    echo -n -e "${CYAN}Enter your choice: ${RESET}"
-    read -r choice
 
+    read -p "Choose an option: " choice
     case $choice in
-        1)
-            install_pv
+        1) 
             install_pycharm
-            read -r -p "Press any key to continue..."
             ;;
         2)
             uninstall_pycharm
-            read -r -p "Press any key to continue..."
             ;;
         3)
             exit 0
