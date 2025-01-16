@@ -60,6 +60,7 @@ chmod +x /data/data/com.termux/files/home/nh-r
 cat > /data/data/com.termux/files/home/kex << 'EOF'
 #!/bin/bash
 # Start the Kali NetHunter VNC server (Kali Desktop)
+export DISPLAY=:1
 vncserver :1 -geometry 1280x800
 echo "VNC started. Connect to localhost:5901"
 EOF
@@ -73,6 +74,13 @@ vncserver -kill :1
 echo "VNC server stopped."
 EOF
 chmod +x /data/data/com.termux/files/home/kex-stop
+
+# Optionally create symlinks to make them globally accessible
+echo "Creating symlinks to make scripts globally accessible..."
+ln -sf /data/data/com.termux/files/home/nh /data/data/com.termux/files/usr/bin/nh
+ln -sf /data/data/com.termux/files/home/nh-r /data/data/com.termux/files/usr/bin/nh-r
+ln -sf /data/data/com.termux/files/home/kex /data/data/com.termux/files/usr/bin/kex
+ln -sf /data/data/com.termux/files/home/kex-stop /data/data/com.termux/files/usr/bin/kex-stop
 
 echo "Kali NetHunter installation completed. Use the following commands to manage NetHunter:"
 echo "nh      - Start Kali NetHunter"
