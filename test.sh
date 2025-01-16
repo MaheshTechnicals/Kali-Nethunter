@@ -35,32 +35,49 @@ pkg install -y wget proot tar git x11-repo
 
 # Extract the rootfs to the home directory using proot to avoid permission issues
 echo "Extracting Kali NetHunter rootfs..."
-proot --link2symlink tar --exclude='*/dev/*' -xf $ROOTFS_FILE -C /data/data/com.termux/files/home --no-same-owner
+proot --link2symlink tar --exclude='*/dev/*' -xf $ROOTFS_FILE -C /data/data/com.termux/files/home/kali-arm64 --no-same-owner
 
 # Set up the Kali NetHunter environment
-mkdir -p /data/data/com.termux/files/home/kali
+mkdir -p /data/data/com.termux/files/home/kali-arm64
 
 # Create the 'nh' start script
 cat > /data/data/com.termux/files/home/nh << 'EOF'
 #!/bin/bash
+# Unset LD_PRELOAD to bypass termux-exec conflict
+unset LD_PRELOAD
+
+# Set correct path to proot and environment
+export PATH=/data/data/com.termux/files/usr/bin:$PATH
+
 # Start Kali NetHunter with proot
-proot -S /data/data/com.termux/files/home /bin/bash
+proot -S /data/data/com.termux/files/home/kali-arm64 /bin/bash
 EOF
 chmod +x /data/data/com.termux/files/home/nh
 
 # Create 'nh -r' for root access
 cat > /data/data/com.termux/files/home/nh-r << 'EOF'
 #!/bin/bash
+# Unset LD_PRELOAD to bypass termux-exec conflict
+unset LD_PRELOAD
+
+# Set correct path to proot and environment
+export PATH=/data/data/com.termux/files/usr/bin:$PATH
+
 # Start Kali NetHunter with root access
-proot -S /data/data/com.termux/files/home /bin/bash --login
+proot -S /data/data/com.termux/files/home/kali-arm64 /bin/bash --login
 EOF
 chmod +x /data/data/com.termux/files/home/nh-r
 
 # Create 'kex' script to start VNC
 cat > /data/data/com.termux/files/home/kex << 'EOF'
 #!/bin/bash
+# Unset LD_PRELOAD to bypass termux-exec conflict
+unset LD_PRELOAD
+
+# Set correct path to proot and environment
+export PATH=/data/data/com.termux/files/usr/bin:$PATH
+
 # Start the Kali NetHunter VNC server (Kali Desktop)
-export DISPLAY=:1
 vncserver :1 -geometry 1280x800
 echo "VNC started. Connect to localhost:5901"
 EOF
@@ -69,18 +86,17 @@ chmod +x /data/data/com.termux/files/home/kex
 # Create 'kex stop' script to stop VNC
 cat > /data/data/com.termux/files/home/kex-stop << 'EOF'
 #!/bin/bash
+# Unset LD_PRELOAD to bypass termux-exec conflict
+unset LD_PRELOAD
+
+# Set correct path to proot and environment
+export PATH=/data/data/com.termux/files/usr/bin:$PATH
+
 # Stop the Kali NetHunter VNC server
 vncserver -kill :1
 echo "VNC server stopped."
 EOF
 chmod +x /data/data/com.termux/files/home/kex-stop
-
-# Optionally create symlinks to make them globally accessible
-echo "Creating symlinks to make scripts globally accessible..."
-ln -sf /data/data/com.termux/files/home/nh /data/data/com.termux/files/usr/bin/nh
-ln -sf /data/data/com.termux/files/home/nh-r /data/data/com.termux/files/usr/bin/nh-r
-ln -sf /data/data/com.termux/files/home/kex /data/data/com.termux/files/usr/bin/kex
-ln -sf /data/data/com.termux/files/home/kex-stop /data/data/com.termux/files/usr/bin/kex-stop
 
 echo "Kali NetHunter installation completed. Use the following commands to manage NetHunter:"
 echo "nh      - Start Kali NetHunter"
