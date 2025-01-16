@@ -35,7 +35,7 @@ pkg install -y wget proot tar git x11-repo
 
 # Extract the rootfs to the home directory using proot to avoid permission issues
 echo "Extracting Kali NetHunter rootfs..."
-proot --link2symlink tar -xf $ROOTFS_FILE -C /data/data/com.termux/files/home --no-same-owner
+proot --link2symlink tar --exclude='*/dev/*' -xf $ROOTFS_FILE -C /data/data/com.termux/files/home --no-same-owner
 
 # Set up the Kali NetHunter environment
 mkdir -p /data/data/com.termux/files/home/kali
