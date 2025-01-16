@@ -75,20 +75,12 @@ install_node() {
     echo -e "Node.js version: ${GREEN}$(node -v)${RESET}"
     echo -e "npm version: ${GREEN}$(npm -v)${RESET}"
     echo -e "NVM was configured in: ${YELLOW}$CONFIGURED_FILE${RESET}"
-
-    # Source profile files silently in the background without output
-    echo -e "${CYAN}Sourcing appropriate profile files...${RESET}"
-    for file in "${PROFILE_FILES[@]}"; do
-        if [ -f "$file" ]; then
-            (source "$file" &)
-        fi
-    done
 }
 
 # Function to uninstall NVM and Node.js
 uninstall_all() {
     clear
-    echo -e "${CYAN}Uninstalling NVM and Node.js...${RESET}"
+    echo -e "${CYAN}Uninstalling NVM, Node.js, and npm...${RESET}"
 
     # Remove the NVM directory
     rm -rf "$HOME/.nvm"
@@ -105,18 +97,20 @@ uninstall_all() {
 
     # Remove globally installed Node.js binaries
     echo -e "${CYAN}Checking for remaining Node.js binaries...${RESET}"
-    if command -v node &>/dev/null || command -v npm &>/dev/null; then
-        sudo rm -f "$(which node)"
-        sudo rm -f "$(which npm)"
+    if [ -d "$HOME/.nvm/versions" ]; then
+        rm -rf "$HOME/.nvm/versions"
     fi
+
+    # Unset NVM-related environment variables
+    echo -e "${CYAN}Unsetting environment variables...${RESET}"
+    unset NVM_DIR
+    unset NODE_VERSION
+    unset NODE_PATH
+    PATH=$(echo "$PATH" | sed -e 's|$HOME/.nvm[^:]*:||g')
 
     # Reload the shell configuration
     echo -e "${CYAN}Reloading your shell configuration...${RESET}"
-    for file in "${PROFILE_FILES[@]}"; do
-        if [ -f "$file" ]; then
-            (source "$file" &)
-        fi
-    done
+    exec "$SHELL" -l
 
     # Confirm uninstallation
     if command -v node &>/dev/null || command -v npm &>/dev/null; then
