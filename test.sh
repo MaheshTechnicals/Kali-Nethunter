@@ -175,6 +175,7 @@ function check_dependencies() {
 
 # Define download URL
 function get_url() {
+    BASE_URL="https://kali.download/nethunter-images/current/rootfs"
     ROOTFS_URL="${BASE_URL}/${IMAGE_NAME}"
     SHA_URL="${BASE_URL}/${SHA_NAME}"
 }
@@ -255,47 +256,24 @@ if grep -q "kali" ${CHROOT}/etc/passwd; then
 else
     KALIUSR="0";
 fi
-if [[ \$KALIUSR == "0" || \$USER == "root" ]]; then
-    echo "Running as root, please specify user"
-    su -l \$user -c "\$start"
+if [[ \$KALIUSR == "0" || \$1 == "-r" ]]; then
+    start="sudo -u root /bin/bash"
 fi
+
+# start Kali chroot in proot
+termux-chroot -R /opt -L /dev -R /root -g "kali\_user" --bind \${home}/rootfs \$start
 EOF
     chmod +x "$NH_LAUNCHER"
-    ln -sf "$NH_LAUNCHER" "$NH_SHORTCUT"
+    ln -s "$NH_LAUNCHER" "$NH_SHORTCUT"
 }
 
-# Create GUI launcher for Kali VNC
-function create_kex_launcher() {
-    cat > "${PREFIX}/bin/kex" <<- EOF
-#!/data/data/com.termux/files/usr/bin/bash -e
-# Starting the kali chroot with VNC
-export USER=kali
-export HOME=/home/\$USER
-proot --link2symlink -0 -r ${CHROOT} -b /dev -b /proc -b /sys -b /data/data/com.termux/files/home:/dev/shm /usr/bin/env -i TERM=\$TERM HOME=\$HOME LOGNAME=\$USER USER=\$USER /usr/bin/vncserver
-EOF
-    chmod +x "${PREFIX}/bin/kex"
-}
-
-# Fix bash profile for Kali
-function fix_profile_bash() {
-    cat >> ${CHROOT}/root/.bashrc <<- EOF
-export PS1='\u@\h:\w\$ '
-EOF
-}
-
-# Set up resolv.conf for DNS
-function fix_resolv_conf() {
-    echo "nameserver 8.8.8.8" > ${CHROOT}/etc/resolv.conf
-    echo "nameserver 8.8.4.4" >> ${CHROOT}/etc/resolv.conf
-}
-
-# Main Function
-function main() {
+# Main function to install NetHunter
+function install_nethunter() {
     print_header
-    echo "${CYAN}[*] Initializing NetHunter installation...${RESET}"
+    get_arch
+    initial_setup
     install_dependencies
     update_system
-    get_arch
     set_strings
     prepare_fs
     check_dependencies
@@ -304,13 +282,9 @@ function main() {
     verify_sha
     extract_rootfs
     create_launcher
-    create_kex_launcher
-    fix_profile_bash
-    fix_resolv_conf
     cleanup
-    echo "${GREEN}[*] Installation completed! Launch NetHunter with 'nethunter' or use 'nethunter kex' for GUI.${RESET}"
 }
 
-# Start the main process
-main
+# Start installation
+install_nethunter
 
