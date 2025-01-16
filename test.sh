@@ -1,7 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash -e
 
 VERSION=2024091801
-BASE_URL=https://kali.download/nethunter-images/current/rootfs
+BASE_URL=https://kali.download/nethunter-images/kali-2024.2/rootfs
 USERNAME=kali
 
 
@@ -153,8 +153,8 @@ function check_dependencies() {
 
 
 function get_url() {
-    ROOTFS_URL="https://github.com/MaheshTechnicals/android_kernel_xiaomi_sm6250.git/${IMAGE_NAME}"
-    SHA_URL="https://github.com/MaheshTechnicals/android_kernel_xiaomi_sm6250.git/${SHA_NAME}"
+    ROOTFS_URL="${BASE_URL}/${IMAGE_NAME}"
+    SHA_URL="${BASE_URL}/${SHA_NAME}"
 }
 
 function get_rootfs() {
