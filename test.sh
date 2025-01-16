@@ -19,23 +19,31 @@ else
     exit 1
 fi
 
-# Check if the rootfs file already exists
+# Define the location of the rootfs file
 ROOTFS_FILE="/data/data/com.termux/files/home/kali-rootfs.tar.xz"
+KALI_DIR="/data/data/com.termux/files/home/kali-arm64"
+
+# Check if the rootfs file already exists
 if [ -f "$ROOTFS_FILE" ]; then
-    echo "Rootfs file already exists. Proceeding with extraction..."
+    echo "Rootfs file already exists. Proceeding with extraction if needed..."
 else
     # Download the rootfs file if not already present
     echo "Downloading Kali NetHunter rootfs..."
     wget -O $ROOTFS_FILE $ROOTFS_URL
 fi
 
-# Install required dependencies
-pkg update && pkg upgrade -y
-pkg install -y wget proot tar git x11-repo
+# Check if the rootfs has already been extracted
+if [ -d "$KALI_DIR" ]; then
+    echo "Kali NetHunter rootfs already extracted. Skipping extraction..."
+else
+    # Install required dependencies
+    pkg update && pkg upgrade -y
+    pkg install -y wget proot tar git x11-repo
 
-# Extract the rootfs to the home directory using proot to avoid permission issues
-echo "Extracting Kali NetHunter rootfs..."
-proot --link2symlink tar --exclude='*/dev/*' -xf $ROOTFS_FILE -C /data/data/com.termux/files/home/kali-arm64 --no-same-owner
+    # Extract the rootfs to the home directory using proot to avoid permission issues
+    echo "Extracting Kali NetHunter rootfs..."
+    proot --link2symlink tar --exclude='*/dev/*' -xf $ROOTFS_FILE -C /data/data/com.termux/files/home/kali-arm64 --no-same-owner
+fi
 
 # Set up the Kali NetHunter environment
 mkdir -p /data/data/com.termux/files/home/kali-arm64
