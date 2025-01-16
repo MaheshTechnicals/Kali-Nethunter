@@ -46,41 +46,24 @@ install_node() {
     fi
     clear
 
+    # Load NVM into the current shell
     echo -e "${CYAN}Configuring NVM...${RESET}"
-    PROFILE_FILES=(~/.bash_profile ~/.zshrc ~/.profile ~/.bashrc)
-    CONFIGURED_FILE=""
-    for file in "${PROFILE_FILES[@]}"; do
-        if [ -f "$file" ]; then
-            echo -e "${YELLOW}Found configuration file: $file${RESET}"
-            CONFIGURED_FILE="$file"
-            {
-                echo 'export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"'
-                echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm'
-            } >>"$file"
-            source "$file"
-            break
-        fi
-    done
-
-    if [ -z "$CONFIGURED_FILE" ]; then
-        echo -e "${RED}No suitable profile file found!${RESET}"
-        exit 1
-    fi
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
     echo -e "${CYAN}Installing Node.js (LTS)...${RESET}"
     nvm install --lts
-    clear
 
+    clear
     echo -e "${GREEN}Installation complete!${RESET}"
     echo -e "Node.js version: ${GREEN}$(node -v)${RESET}"
     echo -e "npm version: ${GREEN}$(npm -v)${RESET}"
-    echo -e "NVM was configured in: ${YELLOW}$CONFIGURED_FILE${RESET}"
 }
 
 # Function to uninstall NVM and Node.js
 uninstall_all() {
     clear
-    echo -e "${CYAN}Uninstalling NVM, Node.js, and npm...${RESET}"
+    echo -e "${CYAN}Uninstalling NVM and Node.js...${RESET}"
 
     # Remove the NVM directory
     rm -rf "$HOME/.nvm"
@@ -95,29 +78,7 @@ uninstall_all() {
         fi
     done
 
-    # Remove globally installed Node.js binaries
-    echo -e "${CYAN}Checking for remaining Node.js binaries...${RESET}"
-    if [ -d "$HOME/.nvm/versions" ]; then
-        rm -rf "$HOME/.nvm/versions"
-    fi
-
-    # Unset NVM-related environment variables
-    echo -e "${CYAN}Unsetting environment variables...${RESET}"
-    unset NVM_DIR
-    unset NODE_VERSION
-    unset NODE_PATH
-    PATH=$(echo "$PATH" | sed -e 's|$HOME/.nvm[^:]*:||g')
-
-    # Reload the shell configuration
-    echo -e "${CYAN}Reloading your shell configuration...${RESET}"
-    exec "$SHELL" -l
-
-    # Confirm uninstallation
-    if command -v node &>/dev/null || command -v npm &>/dev/null; then
-        echo -e "${RED}Node.js or npm is still detected in your environment. Please restart your terminal or manually clean up.${RESET}"
-    else
-        echo -e "${GREEN}NVM, Node.js, and npm have been completely uninstalled.${RESET}"
-    fi
+    echo -e "${GREEN}Uninstallation complete.${RESET}"
 }
 
 # Main script loop
