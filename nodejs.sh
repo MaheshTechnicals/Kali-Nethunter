@@ -80,7 +80,6 @@ install_node() {
     echo -e "${CYAN}Sourcing appropriate profile files...${RESET}"
     for file in "${PROFILE_FILES[@]}"; do
         if [ -f "$file" ]; then
-            # Source the file in the background without showing logs
             (source "$file" &)
         fi
     done
@@ -104,20 +103,26 @@ uninstall_all() {
         fi
     done
 
+    # Remove globally installed Node.js binaries
+    echo -e "${CYAN}Checking for remaining Node.js binaries...${RESET}"
+    if command -v node &>/dev/null || command -v npm &>/dev/null; then
+        sudo rm -f "$(which node)"
+        sudo rm -f "$(which npm)"
+    fi
+
     # Reload the shell configuration
     echo -e "${CYAN}Reloading your shell configuration...${RESET}"
     for file in "${PROFILE_FILES[@]}"; do
         if [ -f "$file" ]; then
-            # Source the file in the background without showing logs
             (source "$file" &)
         fi
     done
 
     # Confirm uninstallation
-    if command -v nvm &>/dev/null; then
-        echo -e "${RED}NVM is still detected in your environment. Please restart your terminal to fully remove it.${RESET}"
+    if command -v node &>/dev/null || command -v npm &>/dev/null; then
+        echo -e "${RED}Node.js or npm is still detected in your environment. Please restart your terminal or manually clean up.${RESET}"
     else
-        echo -e "${GREEN}NVM and Node.js have been completely uninstalled.${RESET}"
+        echo -e "${GREEN}NVM, Node.js, and npm have been completely uninstalled.${RESET}"
     fi
 }
 
