@@ -1,56 +1,53 @@
 #!/data/data/com.termux/files/usr/bin/bash -e
 
-# Define Color Variables
-RESET=$(tput sgr0)
-BOLD=$(tput bold)
-RED=$(tput setaf 1)
-GREEN=$(tput setaf 2)
-YELLOW=$(tput setaf 3)
-BLUE=$(tput setaf 4)
-CYAN=$(tput setaf 6)
-MAGENTA=$(tput setaf 5)
+VERSION=2024091801
+BASE_URL=https://kali.download/nethunter-images/current/rootfs
+USERNAME=kali
 
-# Colorful Header for Kali Linux Installer
-function print_header() {
-    echo "${CYAN}"
-    echo "${BOLD}#############################################################"
-    echo "${MAGENTA}### ${GREEN}Welcome to${CYAN} Kali Linux Installer ${MAGENTA}###"
-    echo "${MAGENTA}###         ${YELLOW}By Mahesh Technicals ${MAGENTA}       ###"
-    echo "${CYAN}"
-    echo "${BOLD}#############################################################"
-    echo "${RESET}"
+
+function unsupported_arch() {
+    printf "${red}"
+    echo "[*] Unsupported Architecture\n\n"
+    printf "${reset}"
+    exit
 }
 
-# Ensure system is updated and wget is installed
-function initial_setup() {
-    echo "${BLUE}[*] Initializing setup...${RESET}"
-    apt update -y && yes | apt upgrade && pkg install -y wget && pkg install x11-repo -y && pkg update && pkg install termux-x11-nightly -y && pkg install tigervnc
-}
+function ask() {
+    # http://djm.me/ask
+    while true; do
 
-# Install Required Commands
-function install_dependencies() {
-    echo "${GREEN}[*] Checking and installing dependencies...${RESET}"
-    packages=("wget" "proot" "tar" "sha512sum")
-
-    for pkg in "${packages[@]}"; do
-        if ! command -v $pkg &> /dev/null; then
-            echo "${RED}[!] $pkg not found. Installing...${RESET}"
-            apt update -y && apt install -y $pkg || { echo "${RED}Failed to install $pkg. Exiting.${RESET}"; exit 1; }
+        if [ "${2:-}" = "Y" ]; then
+            prompt="Y/n"
+            default=Y
+        elif [ "${2:-}" = "N" ]; then
+            prompt="y/N"
+            default=N
         else
-            echo "${GREEN}[*] $pkg is already installed.${RESET}"
+            prompt="y/n"
+            default=
         fi
+
+        # Ask the question
+        printf "${light_cyan}\n[?] "
+        read -p "$1 [$prompt] " REPLY
+
+        # Default?
+        if [ -z "$REPLY" ]; then
+            REPLY=$default
+        fi
+
+        printf "${reset}"
+
+        # Check if the reply is valid
+        case "$REPLY" in
+            Y*|y*) return 0 ;;
+            N*|n*) return 1 ;;
+        esac
     done
 }
 
-# Update and Upgrade System
-function update_system() {
-    echo "${BLUE}[*] Updating and upgrading packages...${RESET}"
-    apt update -y && apt upgrade -y
-}
-
-# Architecture detection function
 function get_arch() {
-    echo "${BLUE}[*] Checking device architecture...${RESET}"
+    printf "${blue}[*] Checking device architecture ..."
     case $(getprop ro.product.cpu.abi) in
         arm64-v8a)
             SYS_ARCH=arm64
@@ -64,75 +61,52 @@ function get_arch() {
     esac
 }
 
-# Display unsupported architecture message
-function unsupported_arch() {
-    echo "${RED}[*] Unsupported Architecture${RESET}"
-    exit
-}
-
-# Ask function to prompt user for yes/no responses
-function ask() {
-    while true; do
-        if [ "${2:-}" = "Y" ]; then
-            prompt="Y/n"
-            default=Y
-        elif [ "${2:-}" = "N" ]; then
-            prompt="y/N"
-            default=N
-        else
-            prompt="y/n"
-            default=
-        fi
-
-        # Ask the question
-        echo "${CYAN}[?] $1 [$prompt]${RESET}"
-        read -p "Enter your choice: " REPLY
-
-        # Default?
-        if [ -z "$REPLY" ]; then
-            REPLY=$default
-        fi
-
-        # Check if the reply is valid
-        case "$REPLY" in
-            Y*|y*) return 0 ;;
-            N*|n*) return 1 ;;
-        esac
-    done
-}
-
-# Set image names and paths based on architecture
 function set_strings() {
-    if [[ ${SYS_ARCH} == "arm64" ]]; then
-        echo "${YELLOW}[1] NetHunter ARM64 (full)${RESET}"
-        echo "${YELLOW}[2] NetHunter ARM64 (minimal)${RESET}"
-        echo "${YELLOW}[3] NetHunter ARM64 (nano)${RESET}"
+    echo \
+    && echo "" 
+    ####
+    if [[ ${SYS_ARCH} == "arm64" ]];
+    then
+        echo "[1] NetHunter ARM64 (full)"
+        echo "[2] NetHunter ARM64 (minimal)"
+        echo "[3] NetHunter ARM64 (nano)"
         read -p "Enter the image you want to install: " wimg
-        case $wimg in
-            1) wimg="full" ;;
-            2) wimg="minimal" ;;
-            3) wimg="nano" ;;
-            *) wimg="full" ;;
-        esac
-    elif [[ ${SYS_ARCH} == "armhf" ]]; then
-        echo "${YELLOW}[1] NetHunter ARMhf (full)${RESET}"
-        echo "${YELLOW}[2] NetHunter ARMhf (minimal)${RESET}"
-        echo "${YELLOW}[3] NetHunter ARMhf (nano)${RESET}"
+        if (( $wimg == "1" ));
+        then
+            wimg="full"
+        elif (( $wimg == "2" ));
+        then
+            wimg="minimal"
+        elif (( $wimg == "3" ));
+        then
+            wimg="nano"
+        else
+            wimg="full"
+        fi
+    elif [[ ${SYS_ARCH} == "armhf" ]];
+    then
+        echo "[1] NetHunter ARMhf (full)"
+        echo "[2] NetHunter ARMhf (minimal)"
+        echo "[3] NetHunter ARMhf (nano)"
         read -p "Enter the image you want to install: " wimg
-        case $wimg in
-            1) wimg="full" ;;
-            2) wimg="minimal" ;;
-            3) wimg="nano" ;;
-            *) wimg="full" ;;
-        esac
+        if [[ "$wimg" == "1" ]]; then
+            wimg="full"
+        elif [[ "$wimg" == "2" ]]; then
+            wimg="minimal"
+        elif [[ "$wimg" == "3" ]]; then
+            wimg="nano"
+        else
+            wimg="full"
+        fi
     fi
+    ####
+
 
     CHROOT=chroot/kali-${SYS_ARCH}
     IMAGE_NAME=kali-nethunter-rootfs-${wimg}-${SYS_ARCH}.tar.xz
     SHA_NAME=${IMAGE_NAME}.sha512sum
-}
+}    
 
-# Prepare file system
 function prepare_fs() {
     unset KEEP_CHROOT
     if [ -d ${CHROOT} ]; then
@@ -142,95 +116,94 @@ function prepare_fs() {
             KEEP_CHROOT=1
         fi
     fi
-}
+} 
 
-# Cleanup downloaded files
 function cleanup() {
     if [ -f "${IMAGE_NAME}" ]; then
         if ask "Delete downloaded rootfs file?" "N"; then
-            rm -f "${IMAGE_NAME}"
-            rm -f "${SHA_NAME}"
+        if [ -f "${IMAGE_NAME}" ]; then
+                rm -f "${IMAGE_NAME}"
+        fi
+        if [ -f "${SHA_NAME}" ]; then
+                rm -f "${SHA_NAME}"
+        fi
         fi
     fi
-}
+} 
 
-# Check for necessary dependencies
 function check_dependencies() {
-    echo "${BLUE}[*] Checking package dependencies...${RESET}"
+    printf "${blue}\n[*] Checking package dependencies...${reset}\n"
+    ## Workaround for termux-app issue #1283 (https://github.com/termux/termux-app/issues/1283)
+    ##apt update -y &> /dev/null
     apt-get update -y &> /dev/null || apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" dist-upgrade -y &> /dev/null
 
     for i in proot tar axel; do
         if [ -e "$PREFIX"/bin/$i ]; then
             echo "  $i is OK"
         else
-            echo "${RED}Installing ${i}...${RESET}"
+            printf "Installing ${i}...\n"
             apt install -y $i || {
-                echo "${RED}ERROR: Failed to install packages. Exiting.${RESET}"
-                exit
+                printf "${red}ERROR: Failed to install packages.\n Exiting.\n${reset}"
+            exit
             }
         fi
     done
     apt upgrade -y
 }
 
-# Define download URL
+
 function get_url() {
-    BASE_URL="https://kali.download/nethunter-images/current/rootfs"
-    ROOTFS_URL="${BASE_URL}/${IMAGE_NAME}"
-    SHA_URL="${BASE_URL}/${SHA_NAME}"
+    ROOTFS_URL="https://github.com/MaheshTechnicals/android_kernel_xiaomi_sm6250.git/${IMAGE_NAME}"
+    SHA_URL="https://github.com/MaheshTechnicals/android_kernel_xiaomi_sm6250.git/${SHA_NAME}"
 }
 
-# Download rootfs image
 function get_rootfs() {
     unset KEEP_IMAGE
     if [ -f "${IMAGE_NAME}" ]; then
         if ask "Existing image file found. Delete and download a new one?" "N"; then
             rm -f "${IMAGE_NAME}"
         else
-            echo "${GREEN}[!] Using existing rootfs archive${RESET}"
+            printf "${yellow}[!] Using existing rootfs archive${reset}\n"
             KEEP_IMAGE=1
             return
         fi
     fi
-    echo "${BLUE}[*] Downloading rootfs...${RESET}"
+    printf "${blue}[*] Downloading rootfs...${reset}\n\n"
     get_url
-    wget --continue "${ROOTFS_URL}"
+    wget "${EXTRA_ARGS}" --continue "${ROOTFS_URL}"
 }
 
-# Download SHA file
 function get_sha() {
     if [ -z $KEEP_IMAGE ]; then
-        echo "${BLUE}[*] Getting SHA ... ${RESET}"
+        printf "\n${blue}[*] Getting SHA ... ${reset}\n\n"
         get_url
         if [ -f "${SHA_NAME}" ]; then
             rm -f "${SHA_NAME}"
         fi
-        wget --continue "${SHA_URL}"
+        wget "${EXTRA_ARGS}" --continue "${SHA_URL}"
     fi
 }
 
-# Verify SHA checksum
 function verify_sha() {
     if [ -z $KEEP_IMAGE ]; then
-        echo "${BLUE}[*] Verifying integrity of rootfs...${RESET}"
+        printf "\n${blue}[*] Verifying integrity of rootfs...${reset}\n\n"
         sha512sum -c "$SHA_NAME" || {
-            echo "${RED}Rootfs corrupted. Please run this installer again or download the file manually.${RESET}"
+            printf "${red} Rootfs corrupted. Please run this installer again or download the file manually\n${reset}"
             exit 1
         }
     fi
 }
 
-# Extract the rootfs image
 function extract_rootfs() {
     if [ -z $KEEP_CHROOT ]; then
-        echo "${BLUE}[*] Extracting rootfs...${RESET}"
+        printf "\n${blue}[*] Extracting rootfs... ${reset}\n\n"
         proot --link2symlink tar -xf "$IMAGE_NAME" 2> /dev/null || :
     else        
-        echo "${GREEN}[!] Using existing rootfs directory${RESET}"
+        printf "${yellow}[!] Using existing rootfs directory${reset}\n"
     fi
 }
 
-# Create launcher for Kali
+
 function create_launcher() {
     NH_LAUNCHER=${PREFIX}/bin/nethunter
     NH_SHORTCUT=${PREFIX}/bin/nh
@@ -256,35 +229,99 @@ if grep -q "kali" ${CHROOT}/etc/passwd; then
 else
     KALIUSR="0";
 fi
-if [[ \$KALIUSR == "0" || \$1 == "-r" ]]; then
-    start="sudo -u root /bin/bash"
+if [[ \$KALIUSR == "0" || ("\$#" != "0" && ("\$1" == "-r" || "\$1" == "-R")) ]];then
+    user="root"
+    home="/\$user"
+    start="/bin/bash --login"
+    if [[ "\$#" != "0" && ("\$1" == "-r" || "\$1" == "-R") ]];then
+        shift
+    fi
 fi
 
-# start Kali chroot in proot
-termux-chroot -R /opt -L /dev -R /root -g "kali\_user" --bind \${home}/rootfs \$start
+cmdline="proot \\
+        --link2symlink \\
+        -0 \\
+        -r $CHROOT \\
+        -b /dev \\
+        -b /proc \\
+        -b /sdcard \\
+        -b $CHROOT\$home:/dev/shm \\
+        -w \$home \\
+           /usr/bin/env -i \\
+           HOME=\$home \\
+           PATH=/usr/local/sbin:/usr/local/bin:/bin:/usr/bin:/sbin:/usr/sbin \\
+           TERM=\$TERM \\
+           LANG=C.UTF-8 \\
+           \$start"
+
+cmd="\$@"
+if [ "\$#" == "0" ];then
+    exec \$cmdline
+else
+    \$cmdline -c "\$cmd"
+fi
 EOF
-    chmod +x "$NH_LAUNCHER"
-    ln -s "$NH_LAUNCHER" "$NH_SHORTCUT"
+
+    chmod 700 "$NH_LAUNCHER"
+    if [ -L "${NH_SHORTCUT}" ]; then
+        rm -f "${NH_SHORTCUT}"
+    fi
+    if [ ! -f "${NH_SHORTCUT}" ]; then
+        ln -s "${NH_LAUNCHER}" "${NH_SHORTCUT}"
+    fi
 }
 
-# Main function to install NetHunter
-function install_nethunter() {
-    print_header
-    get_arch
-    initial_setup
-    install_dependencies
-    update_system
-    set_strings
-    prepare_fs
-    check_dependencies
-    get_rootfs
-    get_sha
-    verify_sha
-    extract_rootfs
-    create_launcher
-    cleanup
+function create_kex_launcher() {
+    KEX_LAUNCHER=${CHROOT}/usr/bin/kex
+    cat > "$KEX_LAUNCHER" <<- EOF
+#!/data/data/com.termux/files/usr/bin/bash
+## Workaround for termux-app issue #1283 (https://github.com/termux/termux-app/issues/1283)
+[ ! -f /dev/kvm ] && mknod /dev/kvm c 10 232
+
+# Make the file executable
+chmod +x $KEX_LAUNCHER
+EOF
+    chmod +x $KEX_LAUNCHER
 }
 
-# Start installation
-install_nethunter
+function create_vnc_launcher() {
+    VNC_LAUNCHER=${CHROOT}/usr/bin/vnc
+    cat > "$VNC_LAUNCHER" <<- EOF
+#!/data/data/com.termux/files/usr/bin/bash
+## Workaround for termux-app issue #1283 (https://github.com/termux/termux-app/issues/1283)
+[ ! -f /dev/kvm ] && mknod /dev/kvm c 10 232
+
+# Make the file executable
+chmod +x $VNC_LAUNCHER
+EOF
+    chmod +x $VNC_LAUNCHER
+}
+
+function create_developer_launcher() {
+    DEV_LAUNCHER=${PREFIX}/bin/developer
+    cat > "$DEV_LAUNCHER" <<- EOF
+#!/data/data/com.termux/files/usr/bin/bash
+## Developer Tools Launcher
+start () {
+    proot --link2symlink -0 -r $CHROOT -b /dev -b /proc -b /sdcard -b $CHROOT/home:/dev/shm -w /root /bin/bash
+}
+start
+EOF
+    chmod +x "$DEV_LAUNCHER"
+}
+
+
+#  MAIN
+
+get_arch
+set_strings
+check_dependencies
+get_rootfs
+get_sha
+verify_sha
+extract_rootfs
+create_launcher
+create_kex_launcher
+create_vnc_launcher
+create_developer_launcher
 
