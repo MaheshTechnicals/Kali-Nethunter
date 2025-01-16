@@ -14,8 +14,8 @@ MAGENTA=$(tput setaf 5)
 function print_header() {
     echo "${CYAN}"
     echo "${BOLD}#############################################################"
-    echo "${BOLD}###         Welcome to Kali Linux Installer - By Mahesh    ###"
-    echo "${BOLD}###             www.maheshtechnicals.com                   ###"
+    echo "${MAGENTA}### ${GREEN}Welcome to${CYAN} Kali Linux Installer ${MAGENTA}###"
+    echo "${MAGENTA}###         ${YELLOW}By Mahesh Technicals ${MAGENTA}       ###"
     echo "${CYAN}"
     echo "${BOLD}#############################################################"
     echo "${RESET}"
@@ -257,7 +257,7 @@ else
 fi
 if [[ \$KALIUSR == "0" || \$USER == "root" ]]; then
     echo "Running as root, please specify user"
-    su -l $user -c "\$start"
+    su -l \$user -c "\$start"
 fi
 EOF
     chmod +x "$NH_LAUNCHER"
