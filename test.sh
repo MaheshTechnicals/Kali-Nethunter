@@ -1,114 +1,138 @@
 #!/bin/bash
 
-# Check system architecture (64-bit or 32-bit)
-ARCHITECTURE=$(uname -m)
-echo "Detected architecture: $ARCHITECTURE"
+#===============================#
+#      IntelliJ IDEA Installer #
+#   Script by MaheshTechnicals  #
+#===============================#
 
-# Define the base URL for Kali NetHunter rootfs (updated URL)
-BASE_URL="https://kali.download/nethunter-images/kali-2024.2/rootfs/"
+# Define colors for the UI
+GREEN="\033[1;32m"
+CYAN="\033[1;36m"
+YELLOW="\033[1;33m"
+RED="\033[1;31m"
+RESET="\033[0m"
 
-# Choose the correct rootfs based on architecture
-if [ "$ARCHITECTURE" == "x86_64" ]; then
-    ROOTFS_URL="${BASE_URL}kalifs-amd64-full.tar.xz"
-    echo "Downloading 64-bit (amd64) rootfs..."
-elif [ "$ARCHITECTURE" == "aarch64" ]; then
-    ROOTFS_URL="${BASE_URL}kalifs-arm64-full.tar.xz"
-    echo "Downloading 64-bit (arm64) rootfs..."
-else
-    echo "Unsupported architecture: $ARCHITECTURE"
-    exit 1
-fi
+# Stylish header
+echo -e "${CYAN}"
+echo "############################################################"
+echo "#                 IntelliJ IDEA Installer                  #"
+echo "#               Author: MaheshTechnicals                  #"
+echo "############################################################"
+echo -e "${RESET}"
 
-# Define the location of the rootfs file
-ROOTFS_FILE="/data/data/com.termux/files/home/kali-rootfs.tar.xz"
-KALI_DIR="/data/data/com.termux/files/home/kali-arm64"
+# Function to print a title
+print_title() {
+    echo -e "${YELLOW}------------------------------------------------------------${RESET}"
+    echo -e "${CYAN}$1${RESET}"
+    echo -e "${YELLOW}------------------------------------------------------------${RESET}"
+}
 
-# Check if the rootfs file already exists
-if [ -f "$ROOTFS_FILE" ]; then
-    echo "Rootfs file already exists. Proceeding with extraction if needed..."
-else
-    # Download the rootfs file if not already present
-    echo "Downloading Kali NetHunter rootfs..."
-    wget -O $ROOTFS_FILE $ROOTFS_URL
-fi
+# Function to install IntelliJ IDEA dynamically
+install_intellij() {
+    # Fetch data from the JetBrains API
+    response=$(curl -s 'https://data.services.jetbrains.com/products/releases?code=IIU,IE&latest=true&type=release')
+    
+    # Check if the request was successful
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED}Network request failed. Exiting...${RESET}"
+        exit 1
+    fi
 
-# Check if the rootfs has already been extracted
-if [ -d "$KALI_DIR" ]; then
-    echo "Kali NetHunter rootfs already extracted. Skipping extraction..."
-else
-    # Install required dependencies
-    pkg update && pkg upgrade -y
-    pkg install -y wget proot tar git x11-repo
+    # Parse the JSON response using jq
+    version=$(echo "$response" | jq -r '.IIU[0].version' | xargs)  # Trim the version string
+    download_url=$(echo "$response" | jq -r '.IIU[0].downloads.linuxARM64.link' | xargs)  # Trim the URL
 
-    # Extract the rootfs to the home directory using proot to avoid permission issues
-    echo "Extracting Kali NetHunter rootfs..."
-    proot --link2symlink tar --exclude='*/dev/*' -xf $ROOTFS_FILE -C /data/data/com.termux/files/home/kali-arm64 --no-same-owner
-fi
+    # Check if the parsed values are empty
+    if [[ -z "$version" || -z "$download_url" ]]; then
+        echo -e "${RED}Failed to parse version or download URL. Exiting...${RESET}"
+        exit 1
+    fi
 
-# Set up the Kali NetHunter environment
-mkdir -p /data/data/com.termux/files/home/kali-arm64
+    # Output the fetched version with stylish title
+    print_title "Latest IntelliJ IDEA Version: $version"
+    echo "Download URL: $download_url"
 
-# Create the 'nh' start script
-cat > /data/data/com.termux/files/home/nh << 'EOF'
-#!/bin/bash
-# Unset LD_PRELOAD to bypass termux-exec conflict
-unset LD_PRELOAD
+    # Download the latest IntelliJ IDEA
+    local idea_tar="intellij.tar.gz"
+    local install_dir="/opt/intellij"
 
-# Set correct path to proot and environment
-export PATH=/data/data/com.termux/files/usr/bin:$PATH
+    print_title "Downloading IntelliJ IDEA"
+    wget "$download_url" -O "$idea_tar"
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED}Download failed! Exiting...${RESET}"
+        exit 1
+    fi
 
-# Start Kali NetHunter with proot
-proot -S /data/data/com.termux/files/home/kali-arm64 /bin/bash
+    print_title "Extracting IntelliJ IDEA"
+    sudo rm -rf "$install_dir"
+    sudo mkdir -p "$install_dir"
+    pv "$idea_tar" | sudo tar -xz --strip-components=1 -C "$install_dir"
+    rm -f "$idea_tar"
+
+    print_title "Creating Symbolic Link"
+    sudo ln -sf "$install_dir/bin/idea.sh" /usr/local/bin/intellij
+
+    print_title "Creating Desktop Entry"
+    cat << EOF | sudo tee /usr/share/applications/intellij.desktop > /dev/null
+[Desktop Entry]
+Name=IntelliJ IDEA
+Comment=Integrated Development Environment for Java and other languages
+Exec=$install_dir/bin/idea.sh %f
+Icon=$install_dir/bin/idea.png
+Terminal=false
+Type=Application
+Categories=Development;IDE;
+StartupNotify=true
 EOF
-chmod +x /data/data/com.termux/files/home/nh
 
-# Create 'nh -r' for root access
-cat > /data/data/com.termux/files/home/nh-r << 'EOF'
-#!/bin/bash
-# Unset LD_PRELOAD to bypass termux-exec conflict
-unset LD_PRELOAD
+    echo -e "${GREEN}IntelliJ IDEA has been installed successfully!${RESET}"
+    exit 0  # Exit the script after successful installation
+}
 
-# Set correct path to proot and environment
-export PATH=/data/data/com.termux/files/usr/bin:$PATH
+# Function to uninstall IntelliJ IDEA
+uninstall_intellij() {
+    local install_dir="/opt/intellij"
 
-# Start Kali NetHunter with root access
-proot -S /data/data/com.termux/files/home/kali-arm64 /bin/bash --login
-EOF
-chmod +x /data/data/com.termux/files/home/nh-r
+    print_title "Removing IntelliJ IDEA Installation"
+    sudo rm -rf "$install_dir"
 
-# Create 'kex' script to start VNC
-cat > /data/data/com.termux/files/home/kex << 'EOF'
-#!/bin/bash
-# Unset LD_PRELOAD to bypass termux-exec conflict
-unset LD_PRELOAD
+    print_title "Removing Symbolic Link"
+    sudo rm -f /usr/local/bin/intellij
 
-# Set correct path to proot and environment
-export PATH=/data/data/com.termux/files/usr/bin:$PATH
+    print_title "Removing Desktop Entry"
+    sudo rm -f /usr/share/applications/intellij.desktop
 
-# Start the Kali NetHunter VNC server (Kali Desktop)
-vncserver :1 -geometry 1280x800
-echo "VNC started. Connect to localhost:5901"
-EOF
-chmod +x /data/data/com.termux/files/home/kex
+    echo -e "${GREEN}IntelliJ IDEA has been uninstalled successfully!${RESET}"
+    exit 0  # Exit the script after successful uninstallation
+}
 
-# Create 'kex stop' script to stop VNC
-cat > /data/data/com.termux/files/home/kex-stop << 'EOF'
-#!/bin/bash
-# Unset LD_PRELOAD to bypass termux-exec conflict
-unset LD_PRELOAD
+# Display menu
+while true; do
+    clear
+    echo -e "${CYAN}############################################################${RESET}"
+    echo -e "${CYAN}#                 IntelliJ IDEA Installer                  #${RESET}"
+    echo -e "${CYAN}#               Author: MaheshTechnicals                  #${RESET}"
+    echo -e "${CYAN}############################################################${RESET}"
 
-# Set correct path to proot and environment
-export PATH=/data/data/com.termux/files/usr/bin:$PATH
+    echo -e "${YELLOW}1. Install IntelliJ IDEA${RESET}"
+    echo -e "${YELLOW}2. Uninstall IntelliJ IDEA${RESET}"
+    echo -e "${YELLOW}3. Exit${RESET}"
 
-# Stop the Kali NetHunter VNC server
-vncserver -kill :1
-echo "VNC server stopped."
-EOF
-chmod +x /data/data/com.termux/files/home/kex-stop
-
-echo "Kali NetHunter installation completed. Use the following commands to manage NetHunter:"
-echo "nh      - Start Kali NetHunter"
-echo "nh -r   - Start Kali NetHunter with root access"
-echo "kex &   - Start VNC server (Kali Desktop)"
-echo "kex stop - Stop VNC server"
+    read -p "Choose an option: " choice
+    case $choice in
+        1) 
+            install_intellij
+            ;;
+        2)
+            uninstall_intellij
+            ;;
+        3)
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Invalid choice. Please try again.${RESET}"
+            read -r -p "Press any key to continue..."
+            ;;
+    esac
+done
 
