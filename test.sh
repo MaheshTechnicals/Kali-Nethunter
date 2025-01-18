@@ -77,22 +77,22 @@ install_intellij() {
     install_dependencies
     check_and_install_java
 
-    # Fetch data from the JetBrains API
-    response=$(curl -s 'https://data.services.jetbrains.com/products/releases?code=IIU,IE&latest=true&type=release')
-    
-    # Check if the request was successful
-    if [[ $? -ne 0 ]]; then
-        echo -e "${RED}Network request failed. Exiting...${RESET}"
+    # Fetch data using curl to get the latest version and download URL
+    response=$(curl -s "https://data.services.jetbrains.com/products/releases?code=IC,IE&latest=true&type=release")
+
+    # Check if the curl request was successful
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}There was a problem with the fetch operation.${RESET}"
         exit 1
     fi
 
     # Parse the JSON response using jq
-    version=$(echo "$response" | jq -r '.IIU[0].version' | xargs)  # Trim the version string
-    download_url=$(echo "$response" | jq -r '.IIU[0].downloads.linuxARM64.link' | xargs)  # Trim the URL
+    version=$(echo "$response" | jq -r '.IIC[0].version' | xargs)
+    download_url=$(echo "$response" | jq -r '.IIC[0].downloads.linuxARM64.link' | xargs)
 
     # Check if the parsed values are empty
-    if [[ -z "$version" || -z "$download_url" ]]; then
-        echo -e "${RED}Failed to parse version or download URL. Exiting...${RESET}"
+    if [ -z "$version" ] || [ -z "$download_url" ]; then
+        echo -e "${RED}Failed to parse version or download URL.${RESET}"
         exit 1
     fi
 
