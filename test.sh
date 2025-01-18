@@ -27,8 +27,56 @@ print_title() {
     echo -e "${YELLOW}------------------------------------------------------------${RESET}"
 }
 
+# Function to check and install dependencies
+install_dependencies() {
+    print_title "Checking Required Dependencies"
+
+    dependencies=(curl jq wget pv)
+
+    for package in "${dependencies[@]}"; do
+        if ! dpkg -l | grep -qw "$package"; then
+            echo -e "${YELLOW}$package is not installed. Installing...${RESET}"
+            sudo apt update && sudo apt install -y "$package"
+            if [[ $? -ne 0 ]]; then
+                echo -e "${RED}Failed to install $package. Exiting...${RESET}"
+                exit 1
+            fi
+            echo -e "${GREEN}$package has been installed successfully!${RESET}"
+        else
+            echo -e "${GREEN}$package is already installed. Skipping...${RESET}"
+        fi
+    done
+}
+
+# Function to check Java version and install Java 23 if needed
+check_and_install_java() {
+    print_title "Checking Java Version"
+    
+    # Check if Java is installed and its version
+    if command -v java &> /dev/null; then
+        java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F. '{print $1}')
+        if [[ "$java_version" -ge 23 ]]; then
+            echo -e "${GREEN}Java $java_version is already installed. Skipping Java installation.${RESET}"
+            return 0
+        else
+            echo -e "${YELLOW}Java version is less than 23. Installing Java 23...${RESET}"
+        fi
+    else
+        echo -e "${YELLOW}Java is not installed. Installing Java 23...${RESET}"
+    fi
+
+    # Install Java 23 using the Pycharm installer method
+    wget -qO- "https://github.com/adoptium/temurin23-binaries/releases/latest/download/OpenJDK23U-jdk_x64_linux_hotspot.tar.gz" | pv | sudo tar -xz -C /opt
+    sudo ln -sf /opt/jdk-23/bin/java /usr/bin/java
+    echo -e "${GREEN}Java 23 has been installed successfully!${RESET}"
+}
+
 # Function to install IntelliJ IDEA dynamically
 install_intellij() {
+    # Install dependencies and check Java version
+    install_dependencies
+    check_and_install_java
+
     # Fetch data from the JetBrains API
     response=$(curl -s 'https://data.services.jetbrains.com/products/releases?code=IIU,IE&latest=true&type=release')
     
