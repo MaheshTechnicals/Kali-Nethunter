@@ -1,92 +1,87 @@
-# Kali Nethunter 3022
+# **Kali-Nethunter Repository** ðŸŽ¯
 
+This repository contains a collection of **installer scripts** designed to help you quickly set up essential tools, environments, and utilities for development and penetration testing. From setting up **Kali Linux**, configuring **ROM builds**, to installing editors like **IntelliJ IDEA**, **PyCharm**, and more â€” this repository has it all!
 
+---
 
-## Getting started
+## **ðŸ“ Repository Contents**  
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+| Script Name          | Description                                              |
+|----------------------|----------------------------------------------------------|
+| **Assets.zip**       | Additional assets for setup.                             |
+| **BuildEnvironment.sh** | Sets up the environment for ROM building.             |
+| **Burp_Suite.sh**    | Installs and configures Burp Suite for pentesting.       |
+| **Debian-Neon.sh**   | Installs Debian Neon essentials.                         |
+| **IntelliJ-IDEA.sh** | Automates the setup of IntelliJ IDEA.                    |
+| **NEWROM.sh**        | Builds new ROM environments effortlessly.                |
+| **ROMSETUP.sh**      | Prepares your environment for ROM building.              |
+| **ROMUSER.sh**       | User-specific setup script for ROM development.          |
+| **SublimeText.sh**   | Installs Sublime Text editor with necessary configurations. |
+| **config**           | Configuration files for various setups.                 |
+| **kali.sh**          | Installs and configures Kali Linux for pentesting.       |
+| **nodejs.sh**        | Installs Node.js for development.                        |
+| **pyCharm.sh**       | Sets up PyCharm IDE for Python development.              |
+| **python.sh**        | Installs Python and essential libraries.                 |
+| **sublime.sh**       | Alternate script for setting up Sublime Text.            |
+| **swapmaker.sh**     | Creates a swapfile to optimize performance.              |
+| **vscode**           | Sets up Visual Studio Code with extensions.              |
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+---
 
-## Add your files
+## **ðŸš€ How to Use These Scripts?**
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/MaheshTechnicals/Kali-Nethunter.git
+   cd Kali-Nethunter
+   ```
 
-```
-cd existing_repo
-git remote add origin https://gitlab.com/MaheshTechnicals/kali-nethunter-3022.git
-git branch -M main
-git push -uf origin main
-```
+2. Run the desired script:
+   ```bash
+   chmod +x <script_name>.sh
+   ./<script_name>.sh
+   ```
 
-## Integrate with your tools
+3. Follow the on-screen instructions to complete the setup.
 
-- [ ] [Set up project integrations](https://gitlab.com/MaheshTechnicals/kali-nethunter-3022/-/settings/integrations)
+---
 
-## Collaborate with your team
+## **ðŸŒŸ Key Features**
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+- **Automation**: Simplifies installation and setup tasks.
+- **Customizability**: Modify scripts as per your needs.
+- **Wide Variety**: Covers tools for development, pentesting, and ROM building.
+- **Lightweight**: Designed for efficiency and ease of use.
 
-## Test and Deploy
+---
 
-Use the built-in continuous integration in GitLab.
+## **ðŸ“– Prerequisites**
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+Before using these scripts, ensure the following:
 
-***
+- A **Linux-based environment**.
+- **sudo/root** access.
+- Basic understanding of shell scripting.
 
-# Editing this README
+---
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## **ðŸ’» Screenshots**
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+*(Add relevant screenshots here)*
 
-## Name
-Choose a self-explaining name for your project.
+---
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## **ðŸ‘¨â€ðŸ’» Maintainer**
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+Developed and maintained by **[MaheshTechnicals](https://github.com/MaheshTechnicals)**. Feel free to contribute by submitting a **Pull Request** or raising an **Issue**.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+---
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## **ðŸ“œ License**
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+---
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Make your setups seamless and efficient! ðŸ’»âœ¨  
+Letâ€™s make development fun and fast with **Kali-Nethunter**. ðŸ˜Š
