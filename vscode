@@ -17,6 +17,16 @@ print_banner() {
     echo -e "${CYAN}└─────────────────────────────────────────────────┘${NC}"
 }
 
+# Install required dependencies
+install_dependencies() {
+    echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
+    echo -e "${YELLOW}│${NC}      Installing required dependencies...         ${YELLOW}│${NC}"
+    echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
+
+    sudo apt update
+    sudo apt install -y libgbm1 xdg-utils pv
+}
+
 # Install VS Code
 install_vscode() {
     local download_link
@@ -46,12 +56,6 @@ install_vscode() {
     echo -e "${YELLOW}│${NC}       Found architecture: $arch_msg              ${YELLOW}│${NC}"
     echo -e "${YELLOW}│${NC}          Downloading Visual Studio Code...       ${YELLOW}│${NC}"
     echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
-    
-    # Ensure pv is installed for progress monitoring
-    if ! command -v pv &>/dev/null; then
-        echo -e "${RED}pv command not found, installing it...${NC}"
-        sudo apt-get install pv
-    fi
     
     # Use wget with pv for progress
     wget -qO /tmp/vscode.deb "$download_link" --show-progress --progress=bar:force 2>&1 | tee /dev/tty | grep --line-buffered "%" | awk '{print $2 " " $3 " " $4}'
@@ -90,7 +94,10 @@ main() {
     read -p "${CYAN}Enter your choice: ${NC}" choice
 
     case $choice in
-        1) install_vscode ;;
+        1) 
+            install_dependencies
+            install_vscode
+            ;;
         2) uninstall_vscode ;;
         *) echo -e "${RED}Invalid choice. Exiting...${NC}" >&2; exit 1 ;;
     esac
@@ -98,3 +105,4 @@ main() {
 
 # Run main function
 main
+
