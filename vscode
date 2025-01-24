@@ -17,6 +17,16 @@ print_banner() {
     echo -e "${CYAN}└─────────────────────────────────────────────────┘${NC}"
 }
 
+# Install required dependencies
+install_dependencies() {
+    echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
+    echo -e "${YELLOW}│${NC} Installing required dependencies...             ${YELLOW}│${NC}"
+    echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
+    
+    sudo apt-get update
+    sudo apt-get install -y libgbm1 xdg-utils
+}
+
 # Install VS Code
 install_vscode() {
     local download_link
@@ -40,6 +50,9 @@ install_vscode() {
             exit 1 
             ;;
     esac
+
+    # Install dependencies first
+    install_dependencies
 
     # Download and install Visual Studio Code
     echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
