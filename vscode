@@ -17,16 +17,6 @@ print_banner() {
     echo -e "${CYAN}└─────────────────────────────────────────────────┘${NC}"
 }
 
-# Install required dependencies
-install_dependencies() {
-    echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
-    echo -e "${YELLOW}│${NC}      Installing required dependencies...         ${YELLOW}│${NC}"
-    echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
-
-    sudo apt update
-    sudo apt install -y libgbm1 xdg-utils pv
-}
-
 # Install VS Code
 install_vscode() {
     local download_link
@@ -57,8 +47,8 @@ install_vscode() {
     echo -e "${YELLOW}│${NC}          Downloading Visual Studio Code...       ${YELLOW}│${NC}"
     echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
     
-    # Use wget with pv for progress
-    wget -qO /tmp/vscode.deb "$download_link" --show-progress --progress=bar:force 2>&1 | tee /dev/tty | grep --line-buffered "%" | awk '{print $2 " " $3 " " $4}'
+    # Download using wget with a single-line progress bar
+    wget --quiet --show-progress --progress=dot:mega -O /tmp/vscode.deb "$download_link"
 
     echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
     echo -e "${YELLOW}│${NC}          Installing Visual Studio Code...        ${YELLOW}│${NC}"
@@ -94,10 +84,7 @@ main() {
     read -p "${CYAN}Enter your choice: ${NC}" choice
 
     case $choice in
-        1) 
-            install_dependencies
-            install_vscode
-            ;;
+        1) install_vscode ;;
         2) uninstall_vscode ;;
         *) echo -e "${RED}Invalid choice. Exiting...${NC}" >&2; exit 1 ;;
     esac
