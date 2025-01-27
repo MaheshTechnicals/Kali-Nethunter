@@ -23,8 +23,8 @@ install_via_package_manager() {
     echo "Updating package list..."
     sudo apt update
 
-    echo "Installing LibreOffice with all required components..."
-    sudo apt install -y libreoffice libreoffice-gtk3 libreoffice-l10n-en libreoffice-style-breeze
+    echo "Installing LibreOffice with dependencies..."
+    sudo apt install -y libreoffice libreoffice-gtk3 libreoffice-style-breeze
     if [[ $? -ne 0 ]]; then
         echo "Failed to install LibreOffice. Please check your system."
         exit 1
@@ -102,4 +102,3 @@ else
 fi
 
 verify_desktop_entries
-
