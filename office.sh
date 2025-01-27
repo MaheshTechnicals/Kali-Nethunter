@@ -1,150 +1,96 @@
 #!/bin/bash
 
-# Function to display the header
-display_header() {
-    echo -e "\e[1;44;97m==============================================================\e[0m"
-    echo -e "\e[1;44;97m            LibreOffice Installer Script by Mahesh Technicals          \e[0m"
-    echo -e "\e[1;44;97m==============================================================\e[0m"
-}
+# Clear the screen
+clear
 
-# Function to display section headings
-display_section() {
-    echo -e "\e[1;42;97m>>> $1 <<<\e[0m"
-}
+# Stylish Banner
+echo -e "\033[1;44;97m" # Blue background with white text
+echo "============================================="
+printf "%*s\n" $(((${#'LibreOffice Installer Script by Mahesh Technicals'}+45)/2)) "LibreOffice Installer Script by Mahesh Technicals"
+echo "============================================="
+echo -e "\033[0m" # Reset text formatting
 
-# Function to check the architecture
+# Main Menu
+echo -e "\033[1;33mSelect an option:\033[0m" # Yellow
+echo -e "\033[1;32m1. Install LibreOffice\033[0m" # Green
+echo -e "\033[1;31m2. Uninstall LibreOffice\033[0m" # Red
+echo -e "\033[1;36m" # Cyan
+read -p "Enter your choice (1 or 2): " choice
+echo -e "\033[0m" # Reset text formatting
+
+# Function to check architecture
 check_architecture() {
-    display_section "Checking System Architecture"
-    ARCH=$(uname -m)
-    echo -e "\e[1;34mDetected Architecture: \e[1;32m$ARCH\e[0m"
-    if [[ "$ARCH" == "x86_64" ]]; then
-        INSTALL_METHOD="download"
-    elif [[ "$ARCH" == "i686" || "$ARCH" == "i386" ]]; then
-        INSTALL_METHOD="download"
-    elif [[ "$ARCH" == "aarch64" ]]; then
-        INSTALL_METHOD="package_manager"
-    else
-        echo -e "\e[1;31mUnsupported architecture: $ARCH\e[0m"
-        exit 1
-    fi
+  echo -e "\033[1;34m[INFO] Checking system architecture...\033[0m"
+  ARCH=$(uname -m)
+  if [[ "$ARCH" == "x86_64" ]]; then
+    echo -e "\033[1;32m[OK] Architecture is 64-bit.\033[0m"
+    ARCH="x86_64"
+  elif [[ "$ARCH" == "i386" || "$ARCH" == "i686" ]]; then
+    echo -e "\033[1;32m[OK] Architecture is 32-bit.\033[0m"
+    ARCH="x86"
+  else
+    echo -e "\033[1;31m[ERROR] Unsupported architecture: $ARCH\033[0m"
+    exit 1
+  fi
 }
 
-# Function to install LibreOffice via package manager
-install_via_package_manager() {
-    display_section "Installing LibreOffice via Package Manager"
-    echo -e "\e[1;34mUpdating package list...\e[0m"
-    sudo apt update
-
-    echo -e "\e[1;34mInstalling LibreOffice and dependencies...\e[0m"
-    sudo apt install -y libreoffice libreoffice-gtk3 libreoffice-style-breeze
-    if [[ $? -ne 0 ]]; then
-        echo -e "\e[1;31mFailed to install LibreOffice. Please check your system.\e[0m"
-        exit 1
-    fi
-
-    echo -e "\e[1;32mLibreOffice has been installed successfully with desktop entries.\e[0m"
+# Function to install dependencies
+install_dependencies() {
+  echo -e "\033[1;34m[INFO] Installing dependencies...\033[0m"
+  sudo apt update
+  sudo apt install -y wget tar gdebi libxinerama1 libglu1-mesa libxrender1
+  echo -e "\033[1;32m[OK] Dependencies installed successfully.\033[0m"
 }
 
-# Function to download and install LibreOffice for x86/x64
-install_libreoffice_x86() {
-    display_section "Downloading and Installing LibreOffice for x86/x64"
-    echo -e "\e[1;34mFetching the latest LibreOffice version...\e[0m"
-    LATEST_URL=$(curl -s https://www.libreoffice.org/download/download/ | grep -oP 'https://download.documentfoundation.org/libreoffice/stable/\d+\.\d+(\.\d+)?/deb/\K.*?(?=")')
-    if [[ -z "$LATEST_URL" ]]; then
-        echo -e "\e[1;31mFailed to fetch the latest LibreOffice version.\e[0m"
-        exit 1
-    fi
+# Function to download and install LibreOffice
+install_libreoffice() {
+  check_architecture
+  install_dependencies
+  echo -e "\033[1;34m[INFO] Downloading the latest LibreOffice...\033[0m"
+  LIBRE_URL=$(wget -qO- https://www.libreoffice.org/download/download/ | grep -oP "https://.*LibreOffice_.*Linux_$ARCH\.deb\.tar\.gz" | head -n 1)
+  if [[ -z "$LIBRE_URL" ]]; then
+    echo -e "\033[1;31m[ERROR] Unable to fetch LibreOffice download link.\033[0m"
+    exit 1
+  fi
+  wget -c "$LIBRE_URL" -O LibreOffice.tar.gz
+  echo -e "\033[1;32m[OK] Downloaded LibreOffice archive.\033[0m"
 
-    FULL_URL="https://download.documentfoundation.org/libreoffice/stable/$LATEST_URL"
-    PACKAGE_NAME=$(basename "$FULL_URL")
+  echo -e "\033[1;34m[INFO] Extracting files...\033[0m"
+  tar -xzf LibreOffice.tar.gz
+  LIBRE_FOLDER=$(tar -tf LibreOffice.tar.gz | head -n 1 | cut -d'/' -f1)
+  cd "$LIBRE_FOLDER"/DEBS || exit
+  echo -e "\033[1;34m[INFO] Installing LibreOffice...\033[0m"
+  sudo gdebi --non-interactive *.deb
+  echo -e "\033[1;32m[OK] LibreOffice installed successfully.\033[0m"
 
-    echo -e "\e[1;34mDownloading LibreOffice: \e[1;32m$PACKAGE_NAME\e[0m"
-    wget "$FULL_URL" -O "$PACKAGE_NAME"
-    if [[ $? -ne 0 ]]; then
-        echo -e "\e[1;31mDownload failed.\e[0m"
-        exit 1
-    fi
+  # Add desktop entries
+  echo -e "\033[1;34m[INFO] Adding desktop entries...\033[0m"
+  sudo cp /usr/share/applications/libreoffice*.desktop ~/.local/share/applications/
+  echo -e "\033[1;32m[OK] Desktop entries added successfully.\033[0m"
 
-    echo -e "\e[1;34mExtracting package...\e[0m"
-    tar -xvf "$PACKAGE_NAME" >/dev/null
-    INSTALL_DIR=$(basename "$PACKAGE_NAME" .tar.gz)
-
-    echo -e "\e[1;34mInstalling LibreOffice...\e[0m"
-    cd "$INSTALL_DIR"/DEBS || exit 1
-    sudo dpkg -i *.deb
-    if [[ $? -ne 0 ]]; then
-        echo -e "\e[1;31mInstallation failed. Attempting to fix broken dependencies...\e[0m"
-        sudo apt install -f -y
-        sudo dpkg -i *.deb
-        if [[ $? -ne 0 ]]; then
-            echo -e "\e[1;31mFailed to install LibreOffice. Please check your system.\e[0m"
-            exit 1
-        fi
-    fi
-
-    echo -e "\e[1;32mLibreOffice has been installed successfully with desktop entries.\e[0m"
-    echo -e "\e[1;34mCleaning up temporary files...\e[0m"
-    cd ../..
-    rm -rf "$PACKAGE_NAME" "$INSTALL_DIR"
+  # Cleanup
+  cd ../..
+  rm -rf LibreOffice.tar.gz "$LIBRE_FOLDER"
+  echo -e "\033[1;32m[OK] Installation completed.\033[0m"
 }
 
 # Function to uninstall LibreOffice
 uninstall_libreoffice() {
-    display_section "Uninstalling LibreOffice"
-    echo -e "\e[1;34mRemoving LibreOffice...\e[0m"
-    if [[ "$INSTALL_METHOD" == "package_manager" ]]; then
-        sudo apt purge -y libreoffice*
-        sudo apt autoremove -y
-    else
-        sudo dpkg --remove libreoffice* || echo -e "\e[1;33mNo manually installed LibreOffice components found.\e[0m"
-    fi
-
-    echo -e "\e[1;34mCleaning leftover files...\e[0m"
-    sudo rm -rf /usr/lib/libreoffice
-    sudo rm -rf /usr/share/applications/libreoffice*
-    sudo rm -rf ~/.config/libreoffice
-
-    echo -e "\e[1;32mLibreOffice has been uninstalled successfully.\e[0m"
+  echo -e "\033[1;34m[INFO] Uninstalling LibreOffice...\033[0m"
+  sudo apt remove --purge -y libreoffice* && sudo apt autoremove -y
+  echo -e "\033[1;32m[OK] LibreOffice uninstalled successfully.\033[0m"
 }
 
-# Function to verify desktop entries
-verify_desktop_entries() {
-    display_section "Verifying Desktop Entries"
-    DESKTOP_ENTRY_DIR="/usr/share/applications"
-    if [[ -d "$DESKTOP_ENTRY_DIR" ]]; then
-        ls "$DESKTOP_ENTRY_DIR" | grep libreoffice
-        if [[ $? -eq 0 ]]; then
-            echo -e "\e[1;32mDesktop entries are installed successfully.\e[0m"
-        else
-            echo -e "\e[1;31mDesktop entries are missing. Please check the installation.\e[0m"
-        fi
-    else
-        echo -e "\e[1;31mDesktop entry directory not found. Please check your system.\e[0m"
-    fi
-}
-
-# Main script
-clear
-display_header
-
-echo -e "\e[1;34mSelect an option:\e[0m"
-echo -e "\e[1;33m1. Install LibreOffice\e[0m"
-echo -e "\e[1;33m2. Uninstall LibreOffice\e[0m"
-read -rp "Enter your choice (1 or 2): " CHOICE
-
-check_architecture
-
-if [[ "$CHOICE" -eq 1 ]]; then
-    if [[ "$INSTALL_METHOD" == "package_manager" ]]; then
-        install_via_package_manager
-    else
-        install_libreoffice_x86
-    fi
-    verify_desktop_entries
-elif [[ "$CHOICE" -eq 2 ]]; then
+# Handle user choice
+case $choice in
+  1)
+    install_libreoffice
+    ;;
+  2)
     uninstall_libreoffice
-else
-    echo -e "\e[1;31mInvalid option. Exiting.\e[0m"
-    exit 1
-fi
+    ;;
+  *)
+    echo -e "\033[1;31m[ERROR] Invalid choice. Exiting.\033[0m"
+    ;;
+esac
 
