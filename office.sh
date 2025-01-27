@@ -21,6 +21,47 @@ step_header() {
     echo -e "╚════════════════════════════════════════╝\033[0m"
 }
 
+# Loading animation function
+show_loading_animation() {
+    local duration=$1
+    local chars="⣾⣽⣻⢿⡿⣟⣯⣷"
+    local delay=0.1
+    local end=$((SECONDS + duration))
+    
+    printf "${YELLOW}Loading script components "
+    while [ $SECONDS -lt $end ]; do
+        for (( i=0; i<${#chars}; i++ )); do
+            printf "${YELLOW}%s${RESET}" "${chars:$i:1}"
+            sleep $delay
+            printf "\b"
+        done
+    done
+    printf "${GREEN}Done!${RESET}\n"
+}
+
+# Fancy startup animation
+startup_animation() {
+    clear
+    echo -e "${CYAN}"
+    echo "   _     _ _                ___   __  __ _          "
+    echo "  | |   (_) |__  _ __ ___ / _ \ / _|/ _(_) ___ ___ "
+    echo "  | |   | | '_ \| '__/ _ \ | | | |_| |_| |/ __/ _ \\"
+    echo "  | |___| | |_) | | |  __/ |_| |  _|  _| | (_|  __/"
+    echo "  |_____|_|_.__/|_|  \___|\___/|_| |_| |_|\___\___|"
+    echo -e "${RESET}"
+    sleep 1
+    
+    # Loading effect
+    show_loading_animation 3
+    
+    echo -e "\n${BLUE}╔════════════════════════════════════════════════════════════╗${RESET}"
+    echo -e "${BLUE}║${RESET}     🚀 Welcome to LibreOffice Installer Script v3.0          ${BLUE}║${RESET}"
+    echo -e "${BLUE}║${RESET}     📝 Created by: Mahesh Technicals                        ${BLUE}║${RESET}"
+    echo -e "${BLUE}║${RESET}     🔧 Status: Initializing...                              ${BLUE}║${RESET}"
+    echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${RESET}"
+    sleep 1
+}
+
 # Clear the screen
 clear
 
@@ -33,12 +74,11 @@ RED="\033[1;31m"
 BLUE="\033[1;34m"
 RESET="\033[0m"
 
-# Main banner
-create_header "🚀 LibreOffice Installer Script v3.0 🚀" "$PURPLE"
-echo -e "${CYAN}               By Mahesh Technicals${RESET}\n"
+# Show startup animation
+startup_animation
 
 # Main Menu with fancy box
-echo -e "$BLUE╔══════════════════════════════════╗"
+echo -e "\n$BLUE╔══════════════════════════════════╗"
 echo -e "║         MAIN MENU OPTIONS         ║"
 echo -e "╠══════════════════════════════════╣"
 echo -e "║  ${GREEN}1. Install LibreOffice${BLUE}          ║"
@@ -70,10 +110,8 @@ setup_desktop_entries() {
     step_header "Setting up Desktop Entries" "$PURPLE"
     echo -e "${YELLOW}📋 Creating desktop entries...${RESET}"
     
-    # Create .local/share/applications if it doesn't exist
     mkdir -p ~/.local/share/applications
     
-    # Create desktop entries for each component
     local apps=("writer" "calc" "impress" "draw" "base" "math")
     local names=("Writer" "Calc" "Impress" "Draw" "Base" "Math")
     local icons=("text" "spreadsheet" "presentation" "drawing" "database" "formula")
@@ -95,7 +133,6 @@ Keywords=Office;Work;${names[$i]};
 EOF
     done
     
-    # Update desktop database
     update-desktop-database ~/.local/share/applications
     echo -e "${GREEN}✅ Desktop entries created successfully${RESET}"
 }
