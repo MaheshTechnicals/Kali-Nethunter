@@ -34,7 +34,7 @@ BLUE="\033[1;34m"
 RESET="\033[0m"
 
 # Main banner
-create_header "🚀 LibreOffice Installer Script v2.0 🚀" "$PURPLE"
+create_header "🚀 LibreOffice Installer Script v2.1 🚀" "$PURPLE"
 echo -e "${CYAN}               By Mahesh Technicals${RESET}\n"
 
 # Animated loading bar
@@ -67,14 +67,17 @@ check_architecture() {
         "x86_64")
             echo -e "${GREEN}✅ 64-bit architecture detected${RESET}"
             ARCH="x86_64"
+            INSTALL_METHOD="tarball"
             ;;
         "i386"|"i686")
             echo -e "${GREEN}✅ 32-bit architecture detected${RESET}"
             ARCH="x86"
+            INSTALL_METHOD="tarball"
             ;;
         "aarch64")
             echo -e "${GREEN}✅ ARM 64-bit architecture detected${RESET}"
             ARCH="aarch64"
+            INSTALL_METHOD="apt"
             ;;
         *)
             echo -e "${RED}❌ Unsupported architecture: $ARCH${RESET}"
@@ -88,9 +91,52 @@ install_dependencies() {
     step_header "Installing Dependencies" "$CYAN"
     echo -e "${YELLOW}📦 Updating package lists...${RESET}"
     sudo apt update
-    echo -e "${YELLOW}📥 Installing required packages...${RESET}"
-    sudo apt install -y wget tar gdebi libxinerama1 libglu1-mesa libxrender1
+    
+    if [ "$INSTALL_METHOD" = "tarball" ]; then
+        echo -e "${YELLOW}📥 Installing tarball dependencies...${RESET}"
+        sudo apt install -y wget tar gdebi libxinerama1 libglu1-mesa libxrender1
+    fi
     echo -e "${GREEN}✅ Dependencies installed successfully${RESET}"
+}
+
+# Function to setup desktop entries
+setup_desktop_entries() {
+    step_header "Setting up Desktop Entries" "$PURPLE"
+    echo -e "${YELLOW}📋 Creating desktop entries...${RESET}"
+    
+    # Create .local/share/applications if it doesn't exist
+    mkdir -p ~/.local/share/applications
+    
+    # Copy desktop entries based on installation method
+    if [ "$INSTALL_METHOD" = "tarball" ]; then
+        sudo cp /usr/share/applications/libreoffice*.desktop ~/.local/share/applications/
+    else
+        # For apt installation, create desktop entries for each component
+        local apps=("writer" "calc" "impress" "draw" "base" "math")
+        local names=("Writer" "Calc" "Impress" "Draw" "Base" "Math")
+        local icons=("text" "spreadsheet" "presentation" "drawing" "database" "formula")
+        
+        for i in "${!apps[@]}"; do
+            cat > ~/.local/share/applications/libreoffice-${apps[$i]}.desktop << EOF
+[Desktop Entry]
+Version=1.0
+Terminal=false
+Icon=libreoffice-${icons[$i]}
+Type=Application
+Categories=Office;
+Exec=libreoffice --${apps[$i]} %U
+MimeType=application/vnd.oasis.opendocument.*
+Name=LibreOffice ${names[$i]}
+GenericName=Office Application
+Comment=Create and edit ${names[$i]} documents
+Keywords=Office;Work;${names[$i]};
+EOF
+        done
+    fi
+    
+    # Update desktop database
+    update-desktop-database ~/.local/share/applications
+    echo -e "${GREEN}✅ Desktop entries created successfully${RESET}"
 }
 
 # Function to install LibreOffice
@@ -100,31 +146,38 @@ install_libreoffice() {
     check_architecture
     install_dependencies
     
-    step_header "Downloading LibreOffice" "$BLUE"
-    echo -e "${YELLOW}🌐 Fetching latest version...${RESET}"
-    LIBRE_URL=$(wget -qO- https://www.libreoffice.org/download/download/ | grep -oP "https://.*LibreOffice_.*Linux_$ARCH\.deb\.tar\.gz" | head -n 1)
-    
-    if [[ -z "$LIBRE_URL" ]]; then
-        echo -e "${RED}❌ Download link not found${RESET}"
-        exit 1
+    if [ "$INSTALL_METHOD" = "tarball" ]; then
+        step_header "Downloading LibreOffice" "$BLUE"
+        echo -e "${YELLOW}🌐 Fetching latest version...${RESET}"
+        LIBRE_URL=$(wget -qO- https://www.libreoffice.org/download/download/ | grep -oP "https://.*LibreOffice_.*Linux_$ARCH\.deb\.tar\.gz" | head -n 1)
+        
+        if [[ -z "$LIBRE_URL" ]]; then
+            echo -e "${RED}❌ Download link not found${RESET}"
+            exit 1
+        fi
+        
+        wget -c "$LIBRE_URL" -O LibreOffice.tar.gz
+        
+        step_header "Extracting Files" "$PURPLE"
+        tar -xzf LibreOffice.tar.gz
+        LIBRE_FOLDER=$(tar -tf LibreOffice.tar.gz | head -n 1 | cut -d'/' -f1)
+        cd "$LIBRE_FOLDER"/DEBS || exit
+        
+        step_header "Installing Packages" "$CYAN"
+        echo -e "${YELLOW}⚙️  Installing LibreOffice components...${RESET}"
+        sudo gdebi --non-interactive *.deb
+        
+        cd ../..
+        rm -rf LibreOffice.tar.gz "$LIBRE_FOLDER"
+    else
+        step_header "Installing via APT" "$BLUE"
+        echo -e "${YELLOW}📦 Installing LibreOffice packages...${RESET}"
+        sudo apt install -y libreoffice libreoffice-gtk3 libreoffice-gnome
+        echo -e "${YELLOW}📦 Installing language packages...${RESET}"
+        sudo apt install -y libreoffice-l10n-* libreoffice-help-*
     fi
     
-    wget -c "$LIBRE_URL" -O LibreOffice.tar.gz
-    
-    step_header "Extracting Files" "$PURPLE"
-    tar -xzf LibreOffice.tar.gz
-    LIBRE_FOLDER=$(tar -tf LibreOffice.tar.gz | head -n 1 | cut -d'/' -f1)
-    cd "$LIBRE_FOLDER"/DEBS || exit
-    
-    step_header "Installing Packages" "$CYAN"
-    echo -e "${YELLOW}⚙️  Installing LibreOffice components...${RESET}"
-    sudo gdebi --non-interactive *.deb
-    
-    step_header "Finalizing Installation" "$GREEN"
-    sudo cp /usr/share/applications/libreoffice*.desktop ~/.local/share/applications/
-    
-    cd ../..
-    rm -rf LibreOffice.tar.gz "$LIBRE_FOLDER"
+    setup_desktop_entries
     
     create_header "🎉 Installation Complete! 🎉" "$GREEN"
     echo -e "${CYAN}Thank you for using LibreOffice Installer!${RESET}\n"
@@ -137,6 +190,11 @@ uninstall_libreoffice() {
     step_header "Removing LibreOffice" "$RED"
     echo -e "${YELLOW}🗑️  Uninstalling all components...${RESET}"
     sudo apt remove --purge -y libreoffice* && sudo apt autoremove -y
+    
+    step_header "Cleaning Up" "$BLUE"
+    echo -e "${YELLOW}🧹 Removing desktop entries...${RESET}"
+    rm -f ~/.local/share/applications/libreoffice*.desktop
+    update-desktop-database ~/.local/share/applications
     
     create_header "Uninstallation Complete" "$GREEN"
     echo -e "${CYAN}LibreOffice has been successfully removed${RESET}\n"
