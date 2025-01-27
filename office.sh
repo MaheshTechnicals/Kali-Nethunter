@@ -75,6 +75,26 @@ install_libreoffice_x86() {
     rm -rf "$PACKAGE_NAME" "$INSTALL_DIR"
 }
 
+# Function to uninstall LibreOffice
+uninstall_libreoffice() {
+    echo "Uninstalling LibreOffice..."
+    if [[ "$INSTALL_METHOD" == "package_manager" ]]; then
+        echo "Removing LibreOffice via package manager..."
+        sudo apt purge -y libreoffice*
+        sudo apt autoremove -y
+    else
+        echo "Uninstalling manually installed LibreOffice..."
+        sudo dpkg --remove libreoffice* || echo "No manually installed LibreOffice components found."
+    fi
+
+    echo "Removing leftover files..."
+    sudo rm -rf /usr/lib/libreoffice
+    sudo rm -rf /usr/share/applications/libreoffice*
+    sudo rm -rf ~/.config/libreoffice
+
+    echo "LibreOffice has been uninstalled successfully."
+}
+
 # Function to verify desktop entries
 verify_desktop_entries() {
     echo "Verifying desktop entries for LibreOffice..."
@@ -93,12 +113,23 @@ verify_desktop_entries() {
 }
 
 # Main script
+echo "Select an option:"
+echo "1. Install LibreOffice"
+echo "2. Uninstall LibreOffice"
+read -rp "Enter your choice (1 or 2): " CHOICE
+
 check_architecture
 
-if [[ "$INSTALL_METHOD" == "package_manager" ]]; then
-    install_via_package_manager
+if [[ "$CHOICE" -eq 1 ]]; then
+    if [[ "$INSTALL_METHOD" == "package_manager" ]]; then
+        install_via_package_manager
+    else
+        install_libreoffice_x86
+    fi
+    verify_desktop_entries
+elif [[ "$CHOICE" -eq 2 ]]; then
+    uninstall_libreoffice
 else
-    install_libreoffice_x86
+    echo "Invalid option. Exiting."
+    exit 1
 fi
-
-verify_desktop_entries
