@@ -11,15 +11,17 @@ RESET='\033[0m' # Reset color
 # Author Info
 clear
 echo -e "${CYAN}==========================================${RESET}"
-echo -e "${YELLOW}     Apache & PHP Manager - Mahesh Technicals${RESET}"
+echo -e "${YELLOW}   🚀 Apache & PHP Manager - Mahesh Technicals${RESET}"
 echo -e "${CYAN}==========================================${RESET}"
 
 # Display Menu Options
-echo -e "${GREEN}1) Install & Configure Apache + PHP${RESET}"
-echo -e "${BLUE}2) Start PHP (Apache Server)${RESET}"
-echo -e "${RED}3) Stop PHP (Stop Apache Server)${RESET}"
-echo -e "${YELLOW}4) Exit${RESET}"
+echo -e "${GREEN} 1) Install & Configure Apache + PHP ${RESET}"
+echo -e "${BLUE} 2) Start PHP (Apache Server) ${RESET}"
+echo -e "${RED} 3) Stop PHP (Stop Apache Server) ${RESET}"
+echo -e "${YELLOW} 4) Exit ${RESET}"
 echo -e "${CYAN}==========================================${RESET}"
+
+# Read User Choice
 read -p "💡 Choose an option (1-4): " choice
 
 # Function to Install & Configure Apache + PHP
@@ -77,7 +79,7 @@ stop_php() {
 }
 
 # Execute based on User Choice
-case $choice in
+case "$choice" in
     1) install_php ;;
     2) start_php ;;
     3) stop_php ;;
