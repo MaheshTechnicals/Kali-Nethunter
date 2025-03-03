@@ -15,181 +15,169 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-# Function to display the main menu
-display_menu() {
-    clear
-    echo -e "${CYAN}==========================================${RESET}"
-    echo -e "${YELLOW}   🚀 Apache & PHP Manager - Mahesh Technicals${RESET}"
-    echo -e "${CYAN}==========================================${RESET}"
-    # Display Menu Options
-    echo -e "${GREEN} 1) Install & Configure Apache + PHP ${RESET}"
-    echo -e "${BLUE} 2) Start PHP (Apache Server) ${RESET}"
-    echo -e "${RED} 3) Stop PHP (Stop Apache Server) ${RESET}"
-    echo -e "${YELLOW} 4) Check Status${RESET}"
-    echo -e "${CYAN} 5) Exit ${RESET}"
-    echo -e "${CYAN}==========================================${RESET}"
-}
-
 # Function to Install & Configure Apache + PHP
 install_php() {
     echo -e "${GREEN}🚀 Starting Apache & PHP Installation...${RESET}"
     
     # Step 1: Update System Packages
     echo -e "${BLUE}🔄 Updating system packages...${RESET}"
-    apt update && apt upgrade -y || {
+    apt update && apt upgrade -y
+    if [ $? -ne 0 ]; then
         echo -e "${RED}❌ Failed to update packages. Please check your internet connection.${RESET}"
-        return 1
-    }
+        sleep 3
+        return
+    fi
     
     # Step 2: Install Apache
     echo -e "${BLUE}🌐 Installing Apache Web Server...${RESET}"
-    apt install apache2 -y || {
+    apt install apache2 -y
+    if [ $? -ne 0 ]; then
         echo -e "${RED}❌ Failed to install Apache.${RESET}"
-        return 1
-    }
+        sleep 3
+        return
+    fi
     
     # Step 3: Install PHP and Required Modules
     echo -e "${BLUE}🛠 Installing PHP and extensions...${RESET}"
-    apt install php libapache2-mod-php php-cli php-curl php-mbstring php-xml php-zip php-gd php-mysql php-bcmath -y || {
+    apt install php libapache2-mod-php php-cli php-curl php-mbstring php-xml php-zip php-gd php-mysql php-bcmath -y
+    if [ $? -ne 0 ]; then
         echo -e "${RED}❌ Failed to install PHP and extensions.${RESET}"
-        return 1
-    }
-    
-    # Step 4: Back up original config files before modifying
-    echo -e "${BLUE}💾 Backing up configuration files...${RESET}"
-    cp /etc/apache2/ports.conf /etc/apache2/ports.conf.backup
-    cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/000-default.conf.backup
-    
-    # Step 5: Configure Apache to Listen on Port 2080
-    echo -e "${BLUE}⚙ Configuring Apache to use port 2080...${RESET}"
-    # First check if port 2080 is already in use
-    if lsof -i:2080 &>/dev/null; then
-        echo -e "${YELLOW}⚠️ Port 2080 is already in use. Would you like to use a different port? (y/n)${RESET}"
-        read -r use_different_port
-        if [[ $use_different_port =~ ^[Yy]$ ]]; then
-            echo -e "${CYAN}Enter a different port number:${RESET}"
-            read -r port_number
-            # Validate port number
-            if ! [[ "$port_number" =~ ^[0-9]+$ ]] || [ "$port_number" -lt 1024 ] || [ "$port_number" -gt 65535 ]; then
-                echo -e "${RED}❌ Invalid port number. Using default 8080.${RESET}"
-                port_number=8080
-            fi
-        else
-            port_number=8080
-            echo -e "${YELLOW}Using alternative port 8080${RESET}"
-        fi
-    else
-        port_number=2080
+        sleep 3
+        return
     fi
     
-    # Update configuration files
-    sed -i "s/Listen 80/Listen $port_number/" /etc/apache2/ports.conf
-    sed -i "s/:80>/:$port_number>/" /etc/apache2/sites-available/000-default.conf
+    # Step 4: Configure Apache to Listen on Port 2080
+    echo -e "${BLUE}⚙ Configuring Apache to use port 2080...${RESET}"
     
-    # Step 6: Restart Apache to Apply Changes
+    # Backup original configs
+    cp /etc/apache2/ports.conf /etc/apache2/ports.conf.bak
+    cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/000-default.conf.bak
+    
+    # Use port 2080
+    PORT=2080
+    sed -i "s/Listen 80/Listen $PORT/" /etc/apache2/ports.conf
+    sed -i "s/<VirtualHost \*:80>/<VirtualHost \*:$PORT>/" /etc/apache2/sites-available/000-default.conf
+    
+    # Step 5: Restart Apache to Apply Changes
     echo -e "${BLUE}🔄 Restarting Apache...${RESET}"
-    systemctl restart apache2 || {
-        echo -e "${RED}❌ Failed to restart Apache. Rolling back configuration changes...${RESET}"
-        cp /etc/apache2/ports.conf.backup /etc/apache2/ports.conf
-        cp /etc/apache2/sites-available/000-default.conf.backup /etc/apache2/sites-available/000-default.conf
+    systemctl restart apache2
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}❌ Failed to restart Apache. Reverting changes...${RESET}"
+        cp /etc/apache2/ports.conf.bak /etc/apache2/ports.conf
+        cp /etc/apache2/sites-available/000-default.conf.bak /etc/apache2/sites-available/000-default.conf
         systemctl restart apache2
-        return 1
-    }
+        sleep 3
+        return
+    fi
     
-    # Step 7: Create info.php File
+    # Step 6: Create info.php File
     echo -e "${BLUE}📄 Creating PHP info file...${RESET}"
     echo "<?php phpinfo(); ?>" > /var/www/html/info.php
     
-    # Step 8: Set Correct Permissions
+    # Step 7: Set Correct Permissions
     echo -e "${BLUE}🔑 Setting permissions for web directory...${RESET}"
     chmod -R 755 /var/www/html/
     chown -R www-data:www-data /var/www/html/
     
-    # Enable required modules
-    echo -e "${BLUE}🔌 Enabling required Apache modules...${RESET}"
+    # Enable rewrite module
     a2enmod rewrite
     systemctl restart apache2
     
     # Completion Message
     echo -e "${GREEN}✅ Installation Complete!${RESET}"
-    echo -e "${YELLOW}📌 Open your browser and visit: ${CYAN}http://localhost:$port_number/info.php${RESET}"
-    echo -e "${BLUE}Press any key to continue...${RESET}"
-    read -n 1
+    echo -e "${YELLOW}📌 Open your browser and visit: ${CYAN}http://localhost:$PORT/info.php${RESET}"
+    sleep 5
 }
 
 # Function to Start Apache (PHP)
 start_php() {
     echo -e "${GREEN}🚀 Starting Apache (PHP Server)...${RESET}"
     
-    # Check if Apache is already running
-    if systemctl is-active --quiet apache2; then
-        echo -e "${YELLOW}⚠️ Apache is already running.${RESET}"
-    else
-        systemctl start apache2 || {
-            echo -e "${RED}❌ Failed to start Apache.${RESET}"
-            return 1
-        }
-        echo -e "${GREEN}✅ Apache Server Started!${RESET}"
+    # Get the current port
+    PORT=$(grep -Po '(?<=Listen )(\d+)' /etc/apache2/ports.conf | head -1)
+    PORT=${PORT:-2080}  # Default to 2080 if not found
+    
+    # Start Apache
+    systemctl start apache2
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}❌ Failed to start Apache.${RESET}"
+        sleep 3
+        return
     fi
     
-    # Get the port Apache is listening on
-    local port=$(grep -Po '(?<=Listen )(\d+)' /etc/apache2/ports.conf | head -1)
-    port=${port:-80} # Default to 80 if not found
-    
-    echo -e "${CYAN}📌 Visit: http://localhost:$port/info.php${RESET}"
-    echo -e "${BLUE}Press any key to continue...${RESET}"
-    read -n 1
+    echo -e "${GREEN}✅ Apache Server Started on Port $PORT!${RESET}"
+    echo -e "${CYAN}📌 Visit: http://localhost:$PORT/info.php${RESET}"
+    sleep 3
 }
 
 # Function to Stop Apache (PHP)
 stop_php() {
     echo -e "${RED}🛑 Stopping Apache (PHP Server)...${RESET}"
     
-    # Check if Apache is already stopped
-    if ! systemctl is-active --quiet apache2; then
-        echo -e "${YELLOW}⚠️ Apache is already stopped.${RESET}"
-    else
-        systemctl stop apache2 || {
-            echo -e "${RED}❌ Failed to stop Apache.${RESET}"
-            return 1
-        }
-        echo -e "${RED}✅ Apache Server Stopped!${RESET}"
+    systemctl stop apache2
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}❌ Failed to stop Apache.${RESET}"
+        sleep 3
+        return
     fi
     
-    echo -e "${BLUE}Press any key to continue...${RESET}"
-    read -n 1
+    echo -e "${RED}✅ Apache Server Stopped!${RESET}"
+    sleep 3
 }
 
-# Function to check Apache status
+# Function to Check Status
 check_status() {
     echo -e "${CYAN}🔍 Checking Apache Status...${RESET}"
     
-    # Display service status
-    systemctl status apache2 --no-pager
+    # Get the current port
+    PORT=$(grep -Po '(?<=Listen )(\d+)' /etc/apache2/ports.conf | head -1)
+    PORT=${PORT:-2080}  # Default to 2080 if not found
     
-    # Get port information
-    local port=$(grep -Po '(?<=Listen )(\d+)' /etc/apache2/ports.conf | head -1)
-    port=${port:-80} # Default to 80 if not found
+    # Check if Apache is running
+    if systemctl is-active --quiet apache2; then
+        echo -e "${GREEN}✅ Apache is running on port $PORT${RESET}"
+    else
+        echo -e "${RED}❌ Apache is not running${RESET}"
+    fi
     
-    echo -e "${CYAN}📌 Apache is configured to listen on port: $port${RESET}"
-    
-    # Check if PHP is installed
+    # Check PHP version
     if command -v php &> /dev/null; then
-        php_version=$(php -v | head -n 1 | cut -d' ' -f2)
-        echo -e "${GREEN}✅ PHP is installed (Version: $php_version)${RESET}"
+        PHP_VER=$(php -v | head -n 1 | cut -d ' ' -f 2)
+        echo -e "${GREEN}✅ PHP $PHP_VER is installed${RESET}"
     else
         echo -e "${RED}❌ PHP is not installed${RESET}"
     fi
     
-    echo -e "${BLUE}Press any key to continue...${RESET}"
-    read -n 1
+    sleep 5
 }
 
 # Main program loop
 while true; do
-    display_menu
-    read -p "💡 Choose an option (1-5): " choice
+    # Display Menu
+    clear
+    echo -e "${CYAN}==========================================${RESET}"
+    echo -e "${YELLOW}   🚀 Apache & PHP Manager - Mahesh Technicals${RESET}"
+    echo -e "${CYAN}==========================================${RESET}"
+    echo -e "${GREEN} 1) Install & Configure Apache + PHP ${RESET}"
+    echo -e "${BLUE} 2) Start PHP (Apache Server) ${RESET}"
+    echo -e "${RED} 3) Stop PHP (Stop Apache Server) ${RESET}"
+    echo -e "${YELLOW} 4) Check Status${RESET}"
+    echo -e "${CYAN} 5) Exit ${RESET}"
+    echo -e "${CYAN}==========================================${RESET}"
     
+    # Get user input more reliably
+    echo -e "${YELLOW}Choose an option (1-5):${RESET} "
+    # Use read with a timeout to prevent hanging
+    read -t 60 choice
+    
+    # Handle empty or invalid input
+    if [ -z "$choice" ]; then
+        echo -e "${RED}No input received. Please try again.${RESET}"
+        sleep 2
+        continue
+    fi
+    
+    # Process user choice
     case "$choice" in
         1) install_php ;;
         2) start_php ;;
@@ -197,7 +185,7 @@ while true; do
         4) check_status ;;
         5) echo -e "${RED}🚪 Exiting...${RESET}"; exit 0 ;;
         *) 
-            echo -e "${RED}❌ Invalid Option! Please choose a valid option.${RESET}"
+            echo -e "${RED}❌ Invalid Option! Please choose a valid option (1-5).${RESET}"
             sleep 2
             ;;
     esac
