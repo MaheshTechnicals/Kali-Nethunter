@@ -20,176 +20,131 @@ echo "#               Author: MaheshTechnicals                  #"
 echo "############################################################"
 echo -e "${RESET}"
 
-# Function to print a title
+#===============================#
+#   Helper Functions            #
+#===============================#
+
+# Print section title
 print_title() {
     echo -e "${YELLOW}------------------------------------------------------------${RESET}"
     echo -e "${CYAN}$1${RESET}"
     echo -e "${YELLOW}------------------------------------------------------------${RESET}"
 }
 
-# Function to check if Java 23 or higher is installed
-check_java_version() {
-    # Get the installed Java version
-    java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
-    
-    # Check if the version is 23 or higher
-    if [[ "$java_version" =~ ^(23|[2-9][0-9]) ]]; then
-        echo -e "${GREEN}Java version $java_version is already installed. Skipping installation.${RESET}"
-        return 1  # Java is already installed, no need to install
+# Detect package manager
+detect_pkg_manager() {
+    if command -v apt-get &>/dev/null; then
+        echo "apt"
+    elif command -v yum &>/dev/null; then
+        echo "yum"
+    elif command -v dnf &>/dev/null; then
+        echo "dnf"
+    elif command -v pacman &>/dev/null; then
+        echo "pacman"
+    elif command -v zypper &>/dev/null; then
+        echo "zypper"
     else
-        return 0  # Java is not installed or version is lower than 23
+        echo ""
     fi
 }
 
-# Function to install Java 23
-install_java() {
-    print_title "Installing Java 23..."
-
-    # Check if Java 23 or higher is already installed
-    check_java_version
-    if [[ $? -eq 1 ]]; then
-        return  # Skip Java installation if it's already installed
+# Install package if not exists
+install_package() {
+    local pkg=$1
+    if ! command -v "$pkg" &>/dev/null; then
+        print_title "Installing $pkg"
+        case $PKG_MANAGER in
+            apt) sudo apt-get update && sudo apt-get install -y "$pkg" ;;
+            yum) sudo yum install -y "$pkg" ;;
+            dnf) sudo dnf install -y "$pkg" ;;
+            pacman) sudo pacman -S --noconfirm "$pkg" ;;
+            zypper) sudo zypper install -y "$pkg" ;;
+            *) echo -e "${RED}No supported package manager found. Please install $pkg manually.${RESET}" && exit 1 ;;
+        esac
+    else
+        echo -e "${GREEN}$pkg is already installed.${RESET}"
     fi
+}
 
-    # Check system architecture
+#===============================#
+#   Java Installation           #
+#===============================#
+
+check_java_version() {
+    java_version=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
+    if [[ "$java_version" =~ ^(23|[2-9][0-9]) ]]; then
+        echo -e "${GREEN}Java version $java_version is already installed.${RESET}"
+        return 1
+    else
+        return 0
+    fi
+}
+
+install_java() {
+    print_title "Installing Java 23"
+    check_java_version && true
+    if [[ $? -eq 1 ]]; then return; fi
+
     ARCH=$(uname -m)
     if [[ "$ARCH" == "x86_64" ]]; then
         JAVA_URL="https://download.java.net/java/GA/jdk23.0.1/c28985cbf10d4e648e4004050f8781aa/11/GPL/openjdk-23.0.1_linux-x64_bin.tar.gz"
     elif [[ "$ARCH" == "aarch64" ]]; then
         JAVA_URL="https://download.java.net/java/GA/jdk23.0.1/c28985cbf10d4e648e4004050f8781aa/11/GPL/openjdk-23.0.1_linux-aarch64_bin.tar.gz"
     else
-        echo -e "${RED}Unsupported architecture: $ARCH. Exiting...${RESET}"
-        exit 1
+        echo -e "${RED}Unsupported architecture: $ARCH${RESET}" && exit 1
     fi
 
-    # Download Java
-    echo -e "${YELLOW}Downloading Java from $JAVA_URL...${RESET}"
-    wget "$JAVA_URL" -O openjdk-23.tar.gz --progress=bar
-    if [[ $? -ne 0 ]]; then
-        echo -e "${RED}Error: Failed to download Java.${RESET}"
-        exit 1
-    fi
-
-    # Create /usr/lib/jvm directory if it doesn't exist
-    echo -e "${CYAN}Creating /usr/lib/jvm directory...${RESET}"
+    wget "$JAVA_URL" -O openjdk-23.tar.gz --progress=bar || { echo -e "${RED}Download failed${RESET}"; exit 1; }
     sudo mkdir -p /usr/lib/jvm
-
-    # Extract Java
-    echo -e "${CYAN}Extracting Java...${RESET}"
     sudo tar -xzf openjdk-23.tar.gz -C /usr/lib/jvm
-    if [[ $? -ne 0 ]]; then
-        echo -e "${RED}Error: Failed to extract Java.${RESET}"
-        exit 1
-    fi
-
-    # Find the extracted Java directory
     JAVA_DIR=$(tar -tf openjdk-23.tar.gz | head -n 1 | cut -f1 -d"/")
     JAVA_PATH="/usr/lib/jvm/$JAVA_DIR"
 
-    # Set up Java alternatives
-    echo -e "${CYAN}Setting up Java alternatives...${RESET}"
     sudo update-alternatives --install /usr/bin/java java "$JAVA_PATH/bin/java" 1
     sudo update-alternatives --set java "$JAVA_PATH/bin/java"
-
-    # Clean up
     rm -f openjdk-23.tar.gz
-    echo -e "${GREEN}Java 23 has been installed successfully!${RESET}"
 
-    # Display installed Java version
+    echo -e "${GREEN}Java installed successfully${RESET}"
     java -version
 }
 
-# Function to install pv utility
-install_pv() {
-    print_title "Installing pv Utility"
-    if command -v pv &>/dev/null; then
-        echo -e "${GREEN}pv is already installed.${RESET}"
-        return
-    fi
-    if command -v apt-get &>/dev/null; then
-        sudo apt-get update
-        sudo apt-get install -y pv
-    elif command -v yum &>/dev/null; then
-        sudo yum install -y pv
-    elif command -v dnf &>/dev/null; then
-        sudo dnf install -y pv
-    elif command -v pacman &>/dev/null; then
-        sudo pacman -S --noconfirm pv
-    elif command -v zypper &>/dev/null; then
-        sudo zypper install -y pv
-    else
-        echo -e "${RED}Unsupported package manager. Please install pv manually.${RESET}"
-        exit 1
-    fi
-}
+#===============================#
+#   PyCharm Installation        #
+#===============================#
 
-# Function to install jq
-install_jq() {
-    # Check if jq is installed, install if not
-    if ! command -v jq &> /dev/null; then
-        echo -e "${YELLOW}jq not found, installing jq...${RESET}"
-        sudo apt update && sudo apt install -y jq
-        if [[ $? -eq 0 ]]; then
-            echo -e "${GREEN}jq has been installed successfully!${RESET}"
-        else
-            echo -e "${RED}Error: jq installation failed.${RESET}"
-            exit 1
-        fi
-    else
-        echo -e "${GREEN}jq is already installed.${RESET}"
-    fi
-}
-
-# Function to install PyCharm dynamically
 install_pycharm() {
-    # Install Java if needed
     install_java
+    install_package jq
+    install_package pv
+    install_package wget
+    install_package curl
+    install_package tar
 
-    # Install jq if not installed
-    install_jq
+    response=$(curl -s 'https://data.services.jetbrains.com/products/releases?code=PCC&latest=true&type=release') || { echo "Network error"; exit 1; }
 
-    # Fetch data from the JetBrains API
-    response=$(curl -s 'https://data.services.jetbrains.com/products/releases?code=PCC&latest=true&type=release')
-    
-    # Check if the request was successful
-    if [[ $? -ne 0 ]]; then
-        echo "Network request failed"
-        exit 1
+    version=$(echo "$response" | jq -r '.PCC[0].version')
+    arch=$(uname -m)
+    if [[ "$arch" == "aarch64" ]]; then
+        download_url=$(echo "$response" | jq -r '.PCC[0].downloads.linuxARM64.link')
+    else
+        download_url=$(echo "$response" | jq -r '.PCC[0].downloads.linux.link')
     fi
 
-    # Parse the JSON response using jq
-    version=$(echo "$response" | jq -r '.PCC[0].version' | xargs)  # Trim the version string
-    download_url=$(echo "$response" | jq -r '.PCC[0].downloads.linuxARM64.link' | xargs)  # Trim the URL
+    print_title "Downloading PyCharm $version"
+    wget "$download_url" -O pycharm.tar.gz || { echo -e "${RED}Download failed${RESET}"; exit 1; }
 
-    # Output the fetched version with stylish title
-    print_title "Latest PyCharm Version: $version"
-    echo "Download URL: $download_url"
-
-    # Download the latest PyCharm
-    local pycharm_tar="pycharm.tar.gz"
     local install_dir="/opt/pycharm"
-
-    print_title "Downloading PyCharm"
-    wget "$download_url" -O "$pycharm_tar"
-    if [[ $? -ne 0 ]]; then
-        echo -e "${RED}Download failed! Exiting...${RESET}"
-        exit 1
-    fi
-
-    print_title "Extracting PyCharm"
     sudo rm -rf "$install_dir"
     sudo mkdir -p "$install_dir"
-    pv "$pycharm_tar" | sudo tar -xz --strip-components=1 -C "$install_dir"
-    rm -f "$pycharm_tar"
+    pv pycharm.tar.gz | sudo tar -xz --strip-components=1 -C "$install_dir"
+    rm -f pycharm.tar.gz
 
-    print_title "Creating Symbolic Link"
     sudo ln -sf "$install_dir/bin/pycharm.sh" /usr/local/bin/pycharm
 
-    print_title "Creating Desktop Entry"
-    cat << EOF | sudo tee /usr/share/applications/pycharm.desktop > /dev/null
+    cat << EOF | sudo tee /usr/share/applications/pycharm.desktop >/dev/null
 [Desktop Entry]
 Name=PyCharm
-Comment=Integrated Development Environment for Python
+Comment=Python IDE
 Exec=$install_dir/bin/pycharm.sh %f
 Icon=$install_dir/bin/pycharm.png
 Terminal=false
@@ -198,28 +153,27 @@ Categories=Development;IDE;
 StartupNotify=true
 EOF
 
-    echo -e "${GREEN}PyCharm has been installed successfully!${RESET}"
-    exit 0  # Exit the script after successful installation
+    echo -e "${GREEN}PyCharm $version installed successfully!${RESET}"
 }
 
-# Function to uninstall PyCharm
 uninstall_pycharm() {
     local install_dir="/opt/pycharm"
-
-    print_title "Removing PyCharm Installation"
     sudo rm -rf "$install_dir"
-
-    print_title "Removing Symbolic Link"
     sudo rm -f /usr/local/bin/pycharm
-
-    print_title "Removing Desktop Entry"
     sudo rm -f /usr/share/applications/pycharm.desktop
-
-    echo -e "${GREEN}PyCharm has been uninstalled successfully!${RESET}"
-    exit 0  # Exit the script after successful uninstallation
+    echo -e "${GREEN}PyCharm uninstalled successfully!${RESET}"
 }
 
-# Display menu
+#===============================#
+#   Menu                        #
+#===============================#
+
+PKG_MANAGER=$(detect_pkg_manager)
+if [[ -z "$PKG_MANAGER" ]]; then
+    echo -e "${RED}No supported package manager found. Exiting.${RESET}"
+    exit 1
+fi
+
 while true; do
     clear
     echo -e "${CYAN}############################################################${RESET}"
@@ -233,19 +187,10 @@ while true; do
 
     read -p "Choose an option: " choice
     case $choice in
-        1) 
-            install_pycharm
-            ;;
-        2)
-            uninstall_pycharm
-            ;;
-        3)
-            exit 0
-            ;;
-        *)
-            echo -e "${RED}Invalid choice. Please try again.${RESET}"
-            read -r -p "Press any key to continue..."
-            ;;
+        1) install_pycharm ;;
+        2) uninstall_pycharm ;;
+        3) exit 0 ;;
+        *) echo -e "${RED}Invalid choice!${RESET}" && read -p "Press Enter..." ;;
     esac
 done
 
