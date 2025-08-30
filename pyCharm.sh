@@ -24,14 +24,12 @@ echo -e "${RESET}"
 #   Helper Functions            #
 #===============================#
 
-# Print section title
 print_title() {
     echo -e "${YELLOW}------------------------------------------------------------${RESET}"
     echo -e "${CYAN}$1${RESET}"
     echo -e "${YELLOW}------------------------------------------------------------${RESET}"
 }
 
-# Detect package manager
 detect_pkg_manager() {
     if command -v apt-get &>/dev/null; then
         echo "apt"
@@ -48,7 +46,6 @@ detect_pkg_manager() {
     fi
 }
 
-# Install package if not exists
 install_package() {
     local pkg=$1
     if ! command -v "$pkg" &>/dev/null; then
@@ -177,7 +174,6 @@ if [[ -z "$PKG_MANAGER" ]]; then
 fi
 
 while true; do
-    clear
     echo -e "${CYAN}############################################################${RESET}"
     echo -e "${CYAN}#                    PyCharm Installer                     #${RESET}"
     echo -e "${CYAN}#               Author: MaheshTechnicals                  #${RESET}"
@@ -192,7 +188,9 @@ while true; do
         1) install_pycharm ;;
         2) uninstall_pycharm ;;
         3) exit 0 ;;
-        *) echo -e "${RED}Invalid choice!${RESET}" && read -p "Press Enter..." ;;
+        *) echo -e "${RED}Invalid choice!${RESET}" ;;
     esac
+    echo
+    read -p "Press Enter to return to menu..."
 done
 
