@@ -136,7 +136,9 @@ install_pycharm() {
     local install_dir="/opt/pycharm"
     sudo rm -rf "$install_dir"
     sudo mkdir -p "$install_dir"
-    pv pycharm.tar.gz | sudo tar -xz --strip-components=1 -C "$install_dir"
+
+    print_title "Extracting PyCharm"
+    sudo tar -xzf pycharm.tar.gz --strip-components=1 -C "$install_dir"
     rm -f pycharm.tar.gz
 
     sudo ln -sf "$install_dir/bin/pycharm.sh" /usr/local/bin/pycharm
@@ -146,7 +148,7 @@ install_pycharm() {
 Name=PyCharm
 Comment=Python IDE
 Exec=$install_dir/bin/pycharm.sh %f
-Icon=$install_dir/bin/pycharm.png
+Icon=$install_dir/bin/pycharm.svg
 Terminal=false
 Type=Application
 Categories=Development;IDE;
