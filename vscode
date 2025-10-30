@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# ╔═══════════════════════════════════════════════════╗
+# ║         VS Code Installer by Mahesh Technicals     ║
+# ╚═══════════════════════════════════════════════════╝
+
 # Define colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -23,8 +27,8 @@ install_dependencies() {
     echo -e "${YELLOW}│${NC} Installing required dependencies...             ${YELLOW}│${NC}"
     echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
     
-    sudo apt-get update
-    sudo apt-get install -y libgbm1 xdg-utils
+    sudo apt-get update -y
+    sudo apt-get install -y libgbm1 xdg-utils debconf-utils wget
 }
 
 # Install VS Code
@@ -33,76 +37,113 @@ install_vscode() {
     local arch=$(uname -m)
 
     case $arch in
-        x86_64) 
+        x86_64)
             download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
             arch_msg="x86_64 (64-bit)"
             ;;
-        armv7l) 
+        armv7l)
             download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-armhf"
             arch_msg="ARM (32-bit)"
             ;;
-        aarch64) 
+        aarch64)
             download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-arm64"
             arch_msg="ARM (64-bit)"
             ;;
-        *) 
-            echo "Unsupported architecture: $arch" >&2
-            exit 1 
+        *)
+            echo -e "${RED}Unsupported architecture: $arch${NC}" >&2
+            exit 1
             ;;
     esac
 
-    # Install dependencies first
     install_dependencies
 
-    # Download and install Visual Studio Code
     echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
-    echo -e "${YELLOW}│${NC}       Found architecture: $arch_msg              ${YELLOW}│${NC}"
-    echo -e "${YELLOW}│${NC}          Downloading Visual Studio Code...       ${YELLOW}│${NC}"
+    echo -e "${YELLOW}│${NC}  Detected architecture: ${arch_msg}               ${YELLOW}│${NC}"
+    echo -e "${YELLOW}│${NC}  Downloading Visual Studio Code...                ${YELLOW}│${NC}"
     echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
-    
-    # Download using wget with a single-line progress bar
+
     wget --quiet --show-progress --progress=dot:mega -O /tmp/vscode.deb "$download_link"
 
     echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
-    echo -e "${YELLOW}│${NC}          Installing Visual Studio Code...        ${YELLOW}│${NC}"
+    echo -e "${YELLOW}│${NC}  Installing Visual Studio Code (noninteractive)...${YELLOW}│${NC}"
     echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
-    sudo dpkg -i /tmp/vscode.deb && \
-    rm /tmp/vscode.deb && \
-    echo -e "${GREEN}┌─────────────────────────────────────────────────┐${NC}" && \
-    echo -e "${GREEN}│${NC}     Visual Studio Code installed successfully!    ${GREEN}│${NC}" && \
+
+    # Auto-accept Microsoft repo addition prompt
+    echo "code code/add-microsoft-repo boolean true" | sudo debconf-set-selections
+    sudo DEBIAN_FRONTEND=noninteractive dpkg -i /tmp/vscode.deb
+    sudo apt-get install -f -y
+
+    # Patch code.desktop to add --no-sandbox
+    local desktop_file="/usr/share/applications/code.desktop"
+    if [[ -f "$desktop_file" ]]; then
+        echo -e "${YELLOW}Patching code.desktop to include --no-sandbox...${NC}"
+        sudo sed -i \
+            -e 's|^Exec=/usr/share/code/code %F$|Exec=/usr/share/code/code --no-sandbox %F|' \
+            -e 's|^Exec=/usr/share/code/code$|Exec=/usr/share/code/code --no-sandbox|' \
+            -e 's|^Exec=/usr/share/code/code --new-window %F$|Exec=/usr/share/code/code --no-sandbox --new-window %F|' \
+            "$desktop_file"
+        echo -e "${GREEN}✔ Patched successfully.${NC}"
+    else
+        echo -e "${RED}⚠ code.desktop not found, skipping patch.${NC}"
+    fi
+
+    rm -f /tmp/vscode.deb
+
+    echo -e "${GREEN}┌─────────────────────────────────────────────────┐${NC}"
+    echo -e "${GREEN}│${NC}  Visual Studio Code installed successfully!       ${GREEN}│${NC}"
     echo -e "${GREEN}└─────────────────────────────────────────────────┘${NC}"
 }
 
 # Uninstall VS Code
 uninstall_vscode() {
     echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
-    echo -e "${YELLOW}│${NC}        Uninstalling Visual Studio Code...        ${YELLOW}│${NC}"
+    echo -e "${YELLOW}│${NC}  Uninstalling Visual Studio Code...               ${YELLOW}│${NC}"
     echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
-    sudo apt-get remove code && \
-    sudo apt-get autoremove && \
-    echo -e "${GREEN}┌─────────────────────────────────────────────────┐${NC}" && \
-    echo -e "${GREEN}│${NC}   Visual Studio Code uninstalled successfully!   ${GREEN}│${NC}" && \
+
+    sudo apt-get remove -y code
+    sudo apt-get autoremove -y
+
+    echo -e "${GREEN}┌─────────────────────────────────────────────────┐${NC}"
+    echo -e "${GREEN}│${NC}  Visual Studio Code uninstalled successfully!     ${GREEN}│${NC}"
     echo -e "${GREEN}└─────────────────────────────────────────────────┘${NC}"
+}
+
+# Interactive Menu
+show_menu() {
+    echo -e "${CYAN}┌─────────────────────────────────────────────────┐${NC}"
+    echo -e "${CYAN}│${NC}                   Choose an option:               ${CYAN}│${NC}"
+    echo -e "${CYAN}│${NC}        1. Install VS Code                        ${CYAN}│${NC}"
+    echo -e "${CYAN}│${NC}        2. Uninstall VS Code                      ${CYAN}│${NC}"
+    echo -e "${CYAN}└─────────────────────────────────────────────────┘${NC}"
+
+    read -p "$(echo -e ${CYAN}Enter your choice:${NC} )" choice
+    case $choice in
+        1) install_vscode ;;
+        2) uninstall_vscode ;;
+        *) echo -e "${RED}Invalid choice. Exiting...${NC}"; exit 1 ;;
+    esac
 }
 
 # Main function
 main() {
     print_banner
-    echo -e "${CYAN}┌─────────────────────────────────────────────────┐${NC}"
-    echo -e "${CYAN}│${NC}                   ${CYAN}Choose an option:${NC}                   ${CYAN}│${NC}"
-    echo -e "${CYAN}│${NC}      ${CYAN}1.${NC} Install VS Code                         ${CYAN}│${NC}"
-    echo -e "${CYAN}│${NC}      ${CYAN}2.${NC} Uninstall VS Code                       ${CYAN}│${NC}"
-    echo -e "${CYAN}└─────────────────────────────────────────────────┘${NC}"
-
-    read -p "${CYAN}Enter your choice: ${NC}" choice
-
-    case $choice in
-        1) install_vscode ;;
-        2) uninstall_vscode ;;
-        *) echo -e "${RED}Invalid choice. Exiting...${NC}" >&2; exit 1 ;;
+    case "$1" in
+        -i|--install)
+            install_vscode
+            ;;
+        -u|--uninstall)
+            uninstall_vscode
+            ;;
+        "" )
+            show_menu
+            ;;
+        *)
+            echo -e "${RED}Invalid option: $1${NC}"
+            echo -e "${YELLOW}Usage:${NC} $0 [-i|--install | -u|--uninstall]"
+            exit 1
+            ;;
     esac
 }
 
 # Run main function
-main
-
+main "$@"
