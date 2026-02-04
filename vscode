@@ -1,149 +1,197 @@
 #!/bin/bash
 
-# ╔═══════════════════════════════════════════════════╗
-# ║         VS Code Installer by Mahesh Technicals     ║
-# ╚═══════════════════════════════════════════════════╝
+# ==============================================================================
+#  VS CODE FOR TERMUX - ULTIMATE EDITION
+#  Author: Mahesh Technicals
+# ==============================================================================
 
-# Define colors
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+# --- 1. DEFINING COLORS & STYLES ---
+RESET="\033[0m"
+BOLD="\033[1m"
 
-# Print banner
-print_banner() {
-    echo -e "${CYAN}┌─────────────────────────────────────────────────┐${NC}"
-    echo -e "${CYAN}│                                                 │${NC}"
-    echo -e "${CYAN}│${NC}             ${GREEN}Welcome to VS Code Installer${NC}             ${CYAN}│${NC}"
-    echo -e "${CYAN}│${NC}                 ${YELLOW}Script by Mahesh Technicals${NC}          ${CYAN}│${NC}"
-    echo -e "${CYAN}│                                                 │${NC}"
-    echo -e "${CYAN}└─────────────────────────────────────────────────┘${NC}"
+# Gradient-like Palette (Simulated)
+C1="\033[38;5;196m" # Red
+C2="\033[38;5;202m" # Orange
+C3="\033[38;5;220m" # Yellow
+C4="\033[38;5;46m"  # Green
+C5="\033[38;5;51m"  # Cyan
+C6="\033[38;5;21m"  # Blue
+C7="\033[38;5;201m" # Purple
+C8="\033[38;5;255m" # White
+
+# Status Colors
+SUCCESS="${BOLD}${C4}"
+ERROR="${BOLD}${C1}"
+INFO="${BOLD}${C5}"
+WARN="${BOLD}${C3}"
+HEADER_TXT="${BOLD}${C8}"
+
+# --- 2. HEADER FUNCTION ---
+draw_header() {
+    clear
+    echo -e "${C6}======================================================${RESET}"
+    echo -e "${C5}    🚀  V S   C O D E   F O R   T E R M U X  🚀   ${RESET}"
+    echo -e "${C6}======================================================${RESET}"
+    echo -e "${C7}         ✨  Created by Mahesh Technicals  ✨       ${RESET}"
+    echo -e "${C6}======================================================${RESET}"
+    echo ""
 }
 
-# Install required dependencies
-install_dependencies() {
-    echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
-    echo -e "${YELLOW}│${NC} Installing required dependencies...             ${YELLOW}│${NC}"
-    echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
-    
-    sudo apt-get update -y
-    sudo apt-get install -y libgbm1 xdg-utils debconf-utils wget
-}
+# --- 3. ARCHITECTURE CHECK ---
+if [ "$(dpkg --print-architecture)" != "arm64" ]; then
+    echo -e "${ERROR}❌ FATAL ERROR: This script is only for arm64 (Termux/Android).${RESET}"
+    exit 1
+fi
 
-# Install VS Code
+draw_header
+echo -e "${BOLD}Choose an action:${RESET}"
+echo -e "${C4}[1]${RESET} 📦 Install / Update VS Code ${C2}(Safe Mode)${RESET}"
+echo -e "${C1}[2]${RESET} 🗑️  Uninstall VS Code Completely"
+echo -e "${C6}------------------------------------------------------${RESET}"
+read -p "👉 Enter your choice [1 or 2]: " choice
+
+# ==========================================================
+# FUNCTION: INSTALL / UPDATE
+# ==========================================================
 install_vscode() {
-    local download_link
-    local arch=$(uname -m)
-
-    case $arch in
-        x86_64)
-            download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
-            arch_msg="x86_64 (64-bit)"
-            ;;
-        armv7l)
-            download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-armhf"
-            arch_msg="ARM (32-bit)"
-            ;;
-        aarch64)
-            download_link="https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-arm64"
-            arch_msg="ARM (64-bit)"
-            ;;
-        *)
-            echo -e "${RED}Unsupported architecture: $arch${NC}" >&2
-            exit 1
-            ;;
-    esac
-
-    install_dependencies
-
-    echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
-    echo -e "${YELLOW}│${NC}  Detected architecture: ${arch_msg}               ${YELLOW}│${NC}"
-    echo -e "${YELLOW}│${NC}  Downloading Visual Studio Code...                ${YELLOW}│${NC}"
-    echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
-
-    wget --quiet --show-progress --progress=dot:mega -O /tmp/vscode.deb "$download_link"
-
-    echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
-    echo -e "${YELLOW}│${NC}  Installing Visual Studio Code (noninteractive)...${YELLOW}│${NC}"
-    echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
-
-    # Auto-accept Microsoft repo addition prompt
-    echo "code code/add-microsoft-repo boolean true" | sudo debconf-set-selections
-    sudo DEBIAN_FRONTEND=noninteractive dpkg -i /tmp/vscode.deb
-    sudo apt-get install -f -y
-
-    # Patch code.desktop to add --no-sandbox
-    local desktop_file="/usr/share/applications/code.desktop"
-    if [[ -f "$desktop_file" ]]; then
-        echo -e "${YELLOW}Patching code.desktop to include --no-sandbox...${NC}"
-        sudo sed -i \
-            -e 's|^Exec=/usr/share/code/code %F$|Exec=/usr/share/code/code --no-sandbox %F|' \
-            -e 's|^Exec=/usr/share/code/code$|Exec=/usr/share/code/code --no-sandbox|' \
-            -e 's|^Exec=/usr/share/code/code --new-window %F$|Exec=/usr/share/code/code --no-sandbox --new-window %F|' \
-            "$desktop_file"
-        echo -e "${GREEN}✔ Patched successfully.${NC}"
+    draw_header
+    
+    # --- STEP 0: CHECK CURRENT VERSION ---
+    echo -e "${INFO}🔍 Checking current status...${RESET}"
+    if command -v code &> /dev/null; then
+        OLD_VER=$(code --no-sandbox --disable-gpu --version 2>/dev/null | head -n 1)
+        echo -e "   ➡️  Current Version: ${C3}$OLD_VER${RESET}"
     else
-        echo -e "${RED}⚠ code.desktop not found, skipping patch.${NC}"
+        OLD_VER="None"
+        echo -e "   ➡️  Current Version: ${C2}Not Installed${RESET}"
     fi
 
-    rm -f /tmp/vscode.deb
+    echo -e "\n${INFO}⬇️  Starting Download...${RESET}"
 
-    echo -e "${GREEN}┌─────────────────────────────────────────────────┐${NC}"
-    echo -e "${GREEN}│${NC}  Visual Studio Code installed successfully!       ${GREEN}│${NC}"
-    echo -e "${GREEN}└─────────────────────────────────────────────────┘${NC}"
+    # 1. Download
+    rm -f vscode_latest.deb
+    # Using wget with -q --show-progress for a cleaner bar
+    wget -q --show-progress "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-arm64" -O vscode_latest.deb
+
+    if [ ! -s vscode_latest.deb ]; then
+        echo -e "${ERROR}❌ ERROR: Download failed. Check internet connection.${RESET}"
+        exit 1
+    fi
+
+    # 2. Extract
+    echo -e "\n${INFO}📦 Extracting files...${RESET}"
+    rm -rf vscode_temp
+    mkdir -p vscode_temp
+    cd vscode_temp
+    ar x ../vscode_latest.deb
+    tar -xf data.tar.xz 2>/dev/null || tar -xf data.tar.gz
+
+    # 3. Install
+    echo -e "${INFO}📂 Installing to system...${RESET}"
+    if [ -d usr ]; then
+        sudo cp -rf usr/* /usr/
+        sudo chmod -R 755 /usr/share/code
+        echo -e "${SUCCESS}   ✅ Files copied successfully.${RESET}"
+        
+        echo -e "${INFO}🔗 Linking command...${RESET}"
+        sudo ln -sf /usr/share/code/bin/code /usr/bin/code
+    else
+        echo -e "${ERROR}❌ ERROR: Extraction failed.${RESET}"
+        cd ..
+        rm -rf vscode_temp vscode_latest.deb
+        exit 1
+    fi
+
+    # 4. Cleanup
+    cd ..
+    rm -rf vscode_temp vscode_latest.deb
+
+    # 5. Patch Shortcut
+    DESKTOP_FILE="/usr/share/applications/code.desktop"
+    if [ -f "$DESKTOP_FILE" ]; then
+        echo -e "${INFO}🔧 Patching Desktop Shortcut...${RESET}"
+        sudo sed -i 's|^Exec=/usr/share/code/code|Exec=/usr/share/code/code --no-sandbox --disable-gpu --password-store="basic"|g' "$DESKTOP_FILE"
+        echo -e "${SUCCESS}   ✅ Keyring & GPU crash fixed.${RESET}"
+    fi
+
+    # 6. SMART SETTINGS CHECK
+    echo -e "\n${INFO}⚙️  Configuring User Settings...${RESET}"
+    SETTINGS_FILE="$HOME/.config/Code/User/settings.json"
+    mkdir -p "$HOME/.config/Code/User"
+
+    if [ -f "$SETTINGS_FILE" ]; then
+        echo -e "${WARN}   ⚠️  Existing settings found. Preserving your config.${RESET}"
+    else
+        echo -e "${SUCCESS}   ✅ Creating optimized defaults for Termux...${RESET}"
+        cat <<EOF > "$SETTINGS_FILE"
+{
+    "extensions.verifySignature": false,
+    "settingsSync.keychain": false,
+    "security.workspace.trust.enabled": false,
+    "telemetry.telemetryLevel": "off",
+    "update.mode": "manual",
+    "window.titleBarStyle": "custom"
+}
+EOF
+    fi
+
+    # --- STEP 7: SUMMARY ---
+    NEW_VER=$(code --no-sandbox --disable-gpu --version 2>/dev/null | head -n 1)
+
+    echo -e "\n${C6}======================================================${RESET}"
+    echo -e "${C4}           🎉  INSTALLATION COMPLETE  🎉            ${RESET}"
+    echo -e "${C6}======================================================${RESET}"
+    echo -e "   📂 Old Version : ${C1}$OLD_VER${RESET}"
+    echo -e "   📂 New Version : ${C4}$NEW_VER${RESET}"
+    echo -e "${C6}======================================================${RESET}"
+
+    if [ "$OLD_VER" == "$NEW_VER" ]; then
+        echo -e "${INFO}   ℹ️  You are already up to date!${RESET}"
+    else
+        echo -e "${SUCCESS}   🚀 Update Successful!${RESET}"
+    fi
+    echo ""
 }
 
-# Uninstall VS Code
+# ==========================================================
+# FUNCTION: UNINSTALL
+# ==========================================================
 uninstall_vscode() {
-    echo -e "${YELLOW}┌─────────────────────────────────────────────────┐${NC}"
-    echo -e "${YELLOW}│${NC}  Uninstalling Visual Studio Code...               ${YELLOW}│${NC}"
-    echo -e "${YELLOW}└─────────────────────────────────────────────────┘${NC}"
+    echo -e "\n${C1}======================================================${RESET}"
+    echo -e "${C1}             ⚠️   UNINSTALL WARNING   ⚠️              ${RESET}"
+    echo -e "${C1}======================================================${RESET}"
+    echo -e "This will delete VS Code and ALL extensions/data."
+    read -p "👉 Are you sure you want to proceed? (y/n): " confirm
+    
+    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then 
+        echo -e "${SUCCESS}🚫 Cancelled.${RESET}"
+        exit 0
+    fi
 
-    sudo apt-get remove -y code
-    sudo apt-get autoremove -y
+    echo -e "\n${INFO}🧹 Cleaning up...${RESET}"
+    
+    sudo dpkg --remove --force-all code 2>/dev/null
+    echo -e "   🗑️  Removed Package Entry"
+    
+    sudo rm -rf /usr/share/code /usr/bin/code
+    echo -e "   🗑️  Deleted Application Files"
+    
+    sudo rm -f /usr/share/applications/code.desktop ~/Desktop/code.desktop
+    echo -e "   🗑️  Removed Shortcuts"
+    
+    rm -rf ~/.vscode ~/.config/Code
+    echo -e "   🗑️  Wiped User Data"
+    
+    sudo apt autoremove -y >/dev/null
 
-    echo -e "${GREEN}┌─────────────────────────────────────────────────┐${NC}"
-    echo -e "${GREEN}│${NC}  Visual Studio Code uninstalled successfully!     ${GREEN}│${NC}"
-    echo -e "${GREEN}└─────────────────────────────────────────────────┘${NC}"
+    echo -e "\n${SUCCESS}✅ VS Code has been completely removed.${RESET}"
 }
 
-# Interactive Menu
-show_menu() {
-    echo -e "${CYAN}┌─────────────────────────────────────────────────┐${NC}"
-    echo -e "${CYAN}│${NC}                   Choose an option:               ${CYAN}│${NC}"
-    echo -e "${CYAN}│${NC}        1. Install VS Code                        ${CYAN}│${NC}"
-    echo -e "${CYAN}│${NC}        2. Uninstall VS Code                      ${CYAN}│${NC}"
-    echo -e "${CYAN}└─────────────────────────────────────────────────┘${NC}"
-
-    read -p "$(echo -e ${CYAN}Enter your choice:${NC} )" choice
-    case $choice in
-        1) install_vscode ;;
-        2) uninstall_vscode ;;
-        *) echo -e "${RED}Invalid choice. Exiting...${NC}"; exit 1 ;;
-    esac
-}
-
-# Main function
-main() {
-    print_banner
-    case "$1" in
-        -i|--install)
-            install_vscode
-            ;;
-        -u|--uninstall)
-            uninstall_vscode
-            ;;
-        "" )
-            show_menu
-            ;;
-        *)
-            echo -e "${RED}Invalid option: $1${NC}"
-            echo -e "${YELLOW}Usage:${NC} $0 [-i|--install | -u|--uninstall]"
-            exit 1
-            ;;
-    esac
-}
-
-# Run main function
-main "$@"
+# ==========================================================
+# MAIN LOGIC
+# ==========================================================
+case "$choice" in
+    1) install_vscode ;;
+    2) uninstall_vscode ;;
+    *) echo -e "${ERROR}❌ Invalid choice. Exiting.${RESET}"; exit 1 ;;
+esac
