@@ -3,6 +3,7 @@
 # ==============================================================================
 #  VS CODE FOR TERMUX - ULTIMATE EDITION
 #  Author: Mahesh Technicals
+#  Fix: Extension signature verification bypass + smart settings merge
 # ==============================================================================
 
 # --- 1. DEFINING COLORS & STYLES ---
@@ -24,7 +25,6 @@ SUCCESS="${BOLD}${C4}"
 ERROR="${BOLD}${C1}"
 INFO="${BOLD}${C5}"
 WARN="${BOLD}${C3}"
-HEADER_TXT="${BOLD}${C8}"
 
 # --- 2. HEADER FUNCTION ---
 draw_header() {
@@ -50,12 +50,31 @@ echo -e "${C1}[2]${RESET} 🗑️  Uninstall VS Code Completely"
 echo -e "${C6}------------------------------------------------------${RESET}"
 read -p "👉 Enter your choice [1 or 2]: " choice
 
+# ==============================================================================
+# HELPER: Safely merge a key:value into an existing JSON settings file
+# Usage: merge_json_setting <file> <key> <value>
+# Value should be passed WITHOUT quotes for booleans/numbers, WITH for strings
+# ==============================================================================
+merge_json_setting() {
+    local file="$1"
+    local key="$2"
+    local value="$3"
+
+    if grep -q "\"$key\"" "$file" 2>/dev/null; then
+        # Key exists — update its value
+        sed -i "s|\"$key\"\s*:\s*[^,}]*|\"$key\": $value|g" "$file"
+    else
+        # Key missing — inject before last closing brace
+        sed -i "s|}[[:space:]]*$|,\n    \"$key\": $value\n}|" "$file"
+    fi
+}
+
 # ==========================================================
 # FUNCTION: INSTALL / UPDATE
 # ==========================================================
 install_vscode() {
     draw_header
-    
+
     # --- STEP 0: CHECK CURRENT VERSION ---
     echo -e "${INFO}🔍 Checking current status...${RESET}"
     if command -v code &> /dev/null; then
@@ -68,9 +87,8 @@ install_vscode() {
 
     echo -e "\n${INFO}⬇️  Starting Download...${RESET}"
 
-    # 1. Download
+    # --- STEP 1: DOWNLOAD ---
     rm -f vscode_latest.deb
-    # Using wget with -q --show-progress for a cleaner bar
     wget -q --show-progress "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-arm64" -O vscode_latest.deb
 
     if [ ! -s vscode_latest.deb ]; then
@@ -78,49 +96,76 @@ install_vscode() {
         exit 1
     fi
 
-    # 2. Extract
+    # --- STEP 2: EXTRACT ---
     echo -e "\n${INFO}📦 Extracting files...${RESET}"
     rm -rf vscode_temp
-    mkdir -p vscode_temp
-    cd vscode_temp
-    ar x ../vscode_latest.deb
-    tar -xf data.tar.xz 2>/dev/null || tar -xf data.tar.gz
+    mkdir -p vscode_temp || { echo -e "${ERROR}❌ ERROR: Cannot create temp directory.${RESET}"; exit 1; }
+    cd vscode_temp || { echo -e "${ERROR}❌ ERROR: Cannot enter temp directory.${RESET}"; exit 1; }
 
-    # 3. Install
-    echo -e "${INFO}📂 Installing to system...${RESET}"
-    if [ -d usr ]; then
-        sudo cp -rf usr/* /usr/
-        sudo chmod -R 755 /usr/share/code
-        echo -e "${SUCCESS}   ✅ Files copied successfully.${RESET}"
-        
-        echo -e "${INFO}🔗 Linking command...${RESET}"
-        sudo ln -sf /usr/share/code/bin/code /usr/bin/code
+    ar x ../vscode_latest.deb
+
+    if [ -f data.tar.zst ]; then
+        tar --use-compress-program=unzstd -xf data.tar.zst 2>/dev/null \
+            || { echo -e "${WARN}   ⚠️  zstd not found, trying zstdcat...${RESET}"; zstdcat data.tar.zst | tar -xf -; }
+    elif [ -f data.tar.xz ]; then
+        tar -xf data.tar.xz
+    elif [ -f data.tar.gz ]; then
+        tar -xf data.tar.gz
     else
-        echo -e "${ERROR}❌ ERROR: Extraction failed.${RESET}"
+        echo -e "${ERROR}❌ ERROR: Unknown archive format inside .deb${RESET}"
         cd ..
         rm -rf vscode_temp vscode_latest.deb
         exit 1
     fi
 
-    # 4. Cleanup
-    cd ..
-    rm -rf vscode_temp vscode_latest.deb
+    # --- STEP 3: INSTALL ---
+    echo -e "${INFO}📂 Installing to system...${RESET}"
+    if [ -d usr ]; then
+        sudo cp -rf usr/* /usr/
+        sudo chmod -R 755 /usr/share/code
+        echo -e "${SUCCESS}   ✅ Files copied successfully.${RESET}"
 
-    # 5. Patch Shortcut
-    DESKTOP_FILE="/usr/share/applications/code.desktop"
-    if [ -f "$DESKTOP_FILE" ]; then
-        echo -e "${INFO}🔧 Patching Desktop Shortcut...${RESET}"
-        sudo sed -i 's|^Exec=/usr/share/code/code|Exec=/usr/share/code/code --no-sandbox --disable-gpu --password-store="basic"|g' "$DESKTOP_FILE"
-        echo -e "${SUCCESS}   ✅ Keyring & GPU crash fixed.${RESET}"
+        echo -e "${INFO}🔗 Linking command...${RESET}"
+        sudo ln -sf /usr/share/code/bin/code /usr/bin/code
+        echo -e "${SUCCESS}   ✅ Symlink created: /usr/bin/code${RESET}"
+    else
+        echo -e "${ERROR}❌ ERROR: Extraction failed. 'usr' directory not found.${RESET}"
+        cd ..
+        rm -rf vscode_temp vscode_latest.deb
+        exit 1
     fi
 
-    # 6. SMART SETTINGS CHECK
+    # --- STEP 4: CLEANUP ---
+    cd ..
+    rm -rf vscode_temp vscode_latest.deb
+    echo -e "${SUCCESS}   ✅ Temp files cleaned.${RESET}"
+
+    # --- STEP 5: PATCH DESKTOP SHORTCUT ---
+    DESKTOP_FILE="/usr/share/applications/code.desktop"
+    if [ -f "$DESKTOP_FILE" ]; then
+        echo -e "\n${INFO}🔧 Patching Desktop Shortcut...${RESET}"
+        sudo sed -i \
+            's|^Exec=/usr/share/code/code|Exec=/usr/share/code/code --no-sandbox --disable-gpu --password-store="basic"|g' \
+            "$DESKTOP_FILE"
+        echo -e "${SUCCESS}   ✅ Keyring & GPU crash fixed in shortcut.${RESET}"
+    fi
+
+    # --- STEP 6: SMART SETTINGS MERGE ---
     echo -e "\n${INFO}⚙️  Configuring User Settings...${RESET}"
     SETTINGS_FILE="$HOME/.config/Code/User/settings.json"
     mkdir -p "$HOME/.config/Code/User"
 
     if [ -f "$SETTINGS_FILE" ]; then
-        echo -e "${WARN}   ⚠️  Existing settings found. Preserving your config.${RESET}"
+        echo -e "${WARN}   ⚠️  Existing settings.json found. Merging required keys...${RESET}"
+
+        merge_json_setting "$SETTINGS_FILE" "extensions.verifySignature"        "false"
+        merge_json_setting "$SETTINGS_FILE" "settingsSync.keychain"             "false"
+        merge_json_setting "$SETTINGS_FILE" "security.workspace.trust.enabled"  "false"
+        merge_json_setting "$SETTINGS_FILE" "telemetry.telemetryLevel"          '"off"'
+        merge_json_setting "$SETTINGS_FILE" "update.mode"                       '"manual"'
+        merge_json_setting "$SETTINGS_FILE" "window.titleBarStyle"              '"custom"'
+
+        echo -e "${SUCCESS}   ✅ Settings merged successfully (your config preserved).${RESET}"
     else
         echo -e "${SUCCESS}   ✅ Creating optimized defaults for Termux...${RESET}"
         cat <<EOF > "$SETTINGS_FILE"
@@ -133,22 +178,49 @@ install_vscode() {
     "window.titleBarStyle": "custom"
 }
 EOF
+        echo -e "${SUCCESS}   ✅ settings.json created.${RESET}"
     fi
 
-    # --- STEP 7: SUMMARY ---
+    # --- STEP 7: PATCH argv.json (startup flags — fixes keyring + GPU at launch) ---
+    echo -e "\n${INFO}🔧 Patching argv.json (startup flags)...${RESET}"
+    ARGV_FILE="$HOME/.vscode/argv.json"
+    mkdir -p "$HOME/.vscode"
+
+    if [ -f "$ARGV_FILE" ]; then
+        echo -e "${WARN}   ⚠️  Existing argv.json found. Merging flags...${RESET}"
+        merge_json_setting "$ARGV_FILE" "disable-hardware-acceleration" "true"
+        merge_json_setting "$ARGV_FILE" "password-store"                '"basic"'
+        echo -e "${SUCCESS}   ✅ argv.json patched.${RESET}"
+    else
+        cat <<EOF > "$ARGV_FILE"
+{
+    "disable-hardware-acceleration": true,
+    "password-store": "basic"
+}
+EOF
+        echo -e "${SUCCESS}   ✅ argv.json created.${RESET}"
+    fi
+
+    # --- STEP 8: SUMMARY ---
     NEW_VER=$(code --no-sandbox --disable-gpu --version 2>/dev/null | head -n 1)
 
     echo -e "\n${C6}======================================================${RESET}"
     echo -e "${C4}           🎉  INSTALLATION COMPLETE  🎉            ${RESET}"
     echo -e "${C6}======================================================${RESET}"
-    echo -e "   📂 Old Version : ${C1}$OLD_VER${RESET}"
-    echo -e "   📂 New Version : ${C4}$NEW_VER${RESET}"
+    echo -e "   📂 Old Version : ${C1}${OLD_VER:-None}${RESET}"
+    echo -e "   📂 New Version : ${C4}${NEW_VER:-Unknown}${RESET}"
+    echo -e "${C6}------------------------------------------------------${RESET}"
+    echo -e "   ${C5}🔑 Extension signature verification : ${C4}DISABLED${RESET}"
+    echo -e "   ${C5}🖥️  GPU acceleration                 : ${C4}DISABLED${RESET}"
+    echo -e "   ${C5}🔒 Keyring / Password store          : ${C4}BASIC (no popup)${RESET}"
     echo -e "${C6}======================================================${RESET}"
 
-    if [ "$OLD_VER" == "$NEW_VER" ]; then
-        echo -e "${INFO}   ℹ️  You are already up to date!${RESET}"
-    else
+    if [ -n "$NEW_VER" ] && [ "$OLD_VER" = "$NEW_VER" ]; then
+        echo -e "${INFO}   ℹ️  Already up to date!${RESET}"
+    elif [ -n "$NEW_VER" ]; then
         echo -e "${SUCCESS}   🚀 Update Successful!${RESET}"
+    else
+        echo -e "${WARN}   ⚠️  Could not verify new version. Try: code --no-sandbox --version${RESET}"
     fi
     echo ""
 }
@@ -162,27 +234,27 @@ uninstall_vscode() {
     echo -e "${C1}======================================================${RESET}"
     echo -e "This will delete VS Code and ALL extensions/data."
     read -p "👉 Are you sure you want to proceed? (y/n): " confirm
-    
-    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then 
+
+    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
         echo -e "${SUCCESS}🚫 Cancelled.${RESET}"
         exit 0
     fi
 
     echo -e "\n${INFO}🧹 Cleaning up...${RESET}"
-    
+
     sudo dpkg --remove --force-all code 2>/dev/null
     echo -e "   🗑️  Removed Package Entry"
-    
+
     sudo rm -rf /usr/share/code /usr/bin/code
     echo -e "   🗑️  Deleted Application Files"
-    
+
     sudo rm -f /usr/share/applications/code.desktop ~/Desktop/code.desktop
     echo -e "   🗑️  Removed Shortcuts"
-    
+
     rm -rf ~/.vscode ~/.config/Code
-    echo -e "   🗑️  Wiped User Data"
-    
-    sudo apt autoremove -y >/dev/null
+    echo -e "   🗑️  Wiped User Data & Settings"
+
+    sudo apt autoremove -y >/dev/null 2>&1
 
     echo -e "\n${SUCCESS}✅ VS Code has been completely removed.${RESET}"
 }
@@ -195,3 +267,4 @@ case "$choice" in
     2) uninstall_vscode ;;
     *) echo -e "${ERROR}❌ Invalid choice. Exiting.${RESET}"; exit 1 ;;
 esac
+
