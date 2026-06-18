@@ -3,30 +3,28 @@
 # ==============================================================================
 #  VS CODE FOR TERMUX - ULTIMATE EDITION
 #  Author: Mahesh Technicals
-#  Fix: Extension signature verification bypass + smart settings merge
+#  Fix: Extension signature verification bypass (3-layer):
+#       1. product.json patch (removes sig fields — verifier never called)
+#       2. vsce-sign stub (dynamic path find — arm64 crash fix)
+#       3. sharedProcessMain.js patch (mandatory enforcement bypass)
+#       + smart settings.json / argv.json merge
+#
+#  Bug Fixes:
+#       - proot /dev/fd fix: mktemp + while IFS= read instead of process substitution
+#       - sharedProcessMain.js: dynamic find (path changed in VSCode 1.125)
+#       - Summary: real STATUS_* variables track actual patch results
 # ==============================================================================
 
-# --- 1. DEFINING COLORS & STYLES ---
-RESET="\033[0m"
-BOLD="\033[1m"
+RESET="\033[0m"; BOLD="\033[1m"
+C1="\033[38;5;196m"; C2="\033[38;5;202m"; C3="\033[38;5;220m"
+C4="\033[38;5;46m";  C5="\033[38;5;51m";  C6="\033[38;5;21m"; C7="\033[38;5;201m"
+SUCCESS="${BOLD}${C4}"; ERROR="${BOLD}${C1}"; INFO="${BOLD}${C5}"; WARN="${BOLD}${C3}"
 
-# Gradient-like Palette (Simulated)
-C1="\033[38;5;196m" # Red
-C2="\033[38;5;202m" # Orange
-C3="\033[38;5;220m" # Yellow
-C4="\033[38;5;46m"  # Green
-C5="\033[38;5;51m"  # Cyan
-C6="\033[38;5;21m"  # Blue
-C7="\033[38;5;201m" # Purple
-C8="\033[38;5;255m" # White
+# Track patch statuses for summary
+STATUS_PRODUCT="NOT PATCHED"
+STATUS_STUB="NOT INSTALLED"
+STATUS_SHAREDJS="NOT PATCHED"
 
-# Status Colors
-SUCCESS="${BOLD}${C4}"
-ERROR="${BOLD}${C1}"
-INFO="${BOLD}${C5}"
-WARN="${BOLD}${C3}"
-
-# --- 2. HEADER FUNCTION ---
 draw_header() {
     clear
     echo -e "${C6}======================================================${RESET}"
@@ -37,7 +35,6 @@ draw_header() {
     echo ""
 }
 
-# --- 3. ARCHITECTURE CHECK ---
 if [ "$(dpkg --print-architecture)" != "arm64" ]; then
     echo -e "${ERROR}❌ FATAL ERROR: This script is only for arm64 (Termux/Android).${RESET}"
     exit 1
@@ -52,55 +49,207 @@ read -p "👉 Enter your choice [1 or 2]: " choice
 
 # ==============================================================================
 # HELPER: Safely merge a key:value into an existing JSON settings file
-# Usage: merge_json_setting <file> <key> <value>
-# Value should be passed WITHOUT quotes for booleans/numbers, WITH for strings
 # ==============================================================================
 merge_json_setting() {
-    local file="$1"
-    local key="$2"
-    local value="$3"
-
+    local file="$1" key="$2" value="$3"
     if grep -q "\"$key\"" "$file" 2>/dev/null; then
-        # Key exists — update its value
         sed -i "s|\"$key\"\s*:\s*[^,}]*|\"$key\": $value|g" "$file"
     else
-        # Key missing — inject before last closing brace
         sed -i "s|}[[:space:]]*$|,\n    \"$key\": $value\n}|" "$file"
     fi
 }
 
-# ==========================================================
-# FUNCTION: INSTALL / UPDATE
-# ==========================================================
+# ==============================================================================
+# FIX 1: Patch product.json
+# ==============================================================================
+patch_product_json() {
+    local PRODUCT_JSON="/usr/share/code/resources/app/product.json"
+    echo -e "${INFO}🔧 Patching product.json (deep sig bypass)...${RESET}"
+
+    if [ ! -f "$PRODUCT_JSON" ]; then
+        echo -e "${WARN}   ⚠️  product.json not found, skipping.${RESET}"
+        STATUS_PRODUCT="NOT FOUND"
+        return
+    fi
+
+    if command -v python3 &>/dev/null; then
+        sudo python3 - "$PRODUCT_JSON" <<'PYEOF'
+import json, sys
+path = sys.argv[1]
+with open(path, 'r') as f:
+    data = json.load(f)
+changed = False
+for key in ['sigVerification']:
+    if key in data:
+        del data[key]; changed = True
+gallery = data.get('extensionsGallery', {})
+for key in ['sigVerification', 'extensionSignatureUrl', 'extensionVerificationUrl']:
+    if key in gallery:
+        del gallery[key]; changed = True
+if changed:
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=2)
+    print("product.json patched successfully.")
+else:
+    print("product.json: already clean, no changes needed.")
+PYEOF
+        echo -e "${SUCCESS}   ✅ product.json handled.${RESET}"
+        STATUS_PRODUCT="PATCHED / CLEAN"
+    else
+        sudo sed -i '/"sigVerification"/d; /"extensionSignatureUrl"/d; /"extensionVerificationUrl"/d' "$PRODUCT_JSON"
+        echo -e "${SUCCESS}   ✅ product.json patched via sed.${RESET}"
+        STATUS_PRODUCT="PATCHED (sed)"
+    fi
+}
+
+# ==============================================================================
+# FIX 2: vsce-sign dynamic stub
+#
+# NOTE: proot does NOT support /dev/fd (process substitution via <(...) fails).
+# Fix: use mktemp file + plain while IFS= read -r loop instead.
+# ==============================================================================
+install_vsce_sign_stub() {
+    echo -e "${INFO}🔧 Locating vsce-sign binary (dynamic search)...${RESET}"
+
+    local CODE_DIR="/usr/share/code"
+    local STUB_CONTENT='#!/bin/sh
+# vsce-sign stub: always reports success (Mahesh Technicals arm64 fix)
+exit 0'
+
+    # Use temp file — proot has no /dev/fd so process substitution fails
+    local TMP_LIST
+    TMP_LIST=$(mktemp)
+    sudo find "$CODE_DIR" -name "vsce-sign" -type f > "$TMP_LIST" 2>/dev/null
+
+    local found=0
+    while IFS= read -r bin_path; do
+        [ -z "$bin_path" ] && continue
+        found=1
+        echo -e "   📍 Found: ${C3}$bin_path${RESET}"
+        if ! grep -q "Mahesh Technicals" "$bin_path" 2>/dev/null; then
+            sudo cp -f "$bin_path" "${bin_path}.bak" 2>/dev/null \
+                && echo -e "   📦 Backed up: $(basename "$bin_path").bak"
+        fi
+        printf '%s\n' "$STUB_CONTENT" | sudo tee "$bin_path" > /dev/null
+        sudo chmod +x "$bin_path"
+        echo -e "${SUCCESS}   ✅ Stub installed: $bin_path${RESET}"
+    done < "$TMP_LIST"
+    rm -f "$TMP_LIST"
+
+    if [ "$found" -eq 0 ]; then
+        echo -e "${WARN}   ⚠️  No vsce-sign binary found. Pre-placing stubs at all known paths...${RESET}"
+        local UNPACKED_BASE="$CODE_DIR/resources/app/node_modules.asar.unpacked"
+        local CANDIDATES=(
+            "$UNPACKED_BASE/node-vsce-sign/bin/vsce-sign"
+            "$UNPACKED_BASE/@vscode/vsce-sign/dist/linux/arm64/vsce-sign"
+            "$UNPACKED_BASE/@vscode/vsce-sign-linux-arm64/bin/vsce-sign"
+            "$CODE_DIR/node_modules/@vscode/vsce-sign/dist/linux/arm64/vsce-sign"
+        )
+        for path in "${CANDIDATES[@]}"; do
+            sudo mkdir -p "$(dirname "$path")"
+            printf '%s\n' "$STUB_CONTENT" | sudo tee "$path" > /dev/null
+            sudo chmod +x "$path"
+            echo -e "${SUCCESS}   ✅ Stub pre-placed: $path${RESET}"
+        done
+    fi
+
+    STATUS_STUB="INSTALLED"
+}
+
+# ==============================================================================
+# FIX 3: Patch sharedProcessMain.js
+#
+# VSCode 1.100+ added mandatory sig enforcement in the shared process JS bundle.
+# Path changed in VSCode 1.125 — use dynamic find instead of hardcoded path.
+# New path: resources/app/out/vs/code/electron-utility/sharedProcess/sharedProcessMain.js
+# ==============================================================================
+patch_shared_process_js() {
+    echo -e "${INFO}🔧 Patching sharedProcessMain.js (mandatory sig enforcement)...${RESET}"
+
+    # Dynamic search — handles path changes across VSCode versions
+    local JS_FILE
+    local TMP_FIND
+    TMP_FIND=$(mktemp)
+    sudo find /usr/share/code -name "sharedProcessMain.js" -type f > "$TMP_FIND" 2>/dev/null
+    JS_FILE=$(head -n 1 "$TMP_FIND")
+    rm -f "$TMP_FIND"
+
+    if [ -z "$JS_FILE" ]; then
+        echo -e "${WARN}   ⚠️  sharedProcessMain.js not found, skipping.${RESET}"
+        STATUS_SHAREDJS="NOT FOUND"
+        return
+    fi
+
+    echo -e "   📍 Found: ${C3}$JS_FILE${RESET}"
+
+    if grep -q "MT_SIG_BYPASS" "$JS_FILE" 2>/dev/null; then
+        echo -e "${SUCCESS}   ✅ Already patched.${RESET}"
+        STATUS_SHAREDJS="ALREADY PATCHED"
+        return
+    fi
+
+    sudo cp -f "$JS_FILE" "${JS_FILE}.bak" 2>/dev/null
+
+    local patched=0
+
+    # Pattern 1: direct throw with "Signature verification failed" string
+    if sudo grep -q 'Signature verification failed' "$JS_FILE" 2>/dev/null; then
+        sudo sed -i \
+            's/throw new Error("Signature verification failed/console.warn("MT_SIG_BYPASS Sig warn/g' \
+            "$JS_FILE" && patched=1
+    fi
+
+    # Pattern 2: SignatureVerification class throw
+    if sudo grep -q 'SignatureVerification' "$JS_FILE" 2>/dev/null; then
+        sudo sed -i \
+            's/throw new \([A-Za-z]*SignatureVerification[A-Za-z]*\)/console.warn("MT_SIG_BYPASS")||new \1/g' \
+            "$JS_FILE" && patched=1
+    fi
+
+    # Pattern 3: Generic verifySignature error throw (minified JS)
+    if sudo grep -q 'verifySignature' "$JS_FILE" 2>/dev/null; then
+        sudo sed -i \
+            's/throw new Error(\([^)]*[Ss]ignature[^)]*\))/console.warn("MT_SIG_BYPASS",\1)/g' \
+            "$JS_FILE" && patched=1
+    fi
+
+    if [ "$patched" -eq 1 ]; then
+        echo -e "${SUCCESS}   ✅ sharedProcessMain.js patched.${RESET}"
+        STATUS_SHAREDJS="PATCHED"
+    else
+        echo -e "${WARN}   ⚠️  No known pattern matched (minification may differ). File found but unchanged.${RESET}"
+        echo -e "${WARN}      product.json + stub fixes are still active.${RESET}"
+        STATUS_SHAREDJS="PATTERN MISMATCH"
+    fi
+}
+
+# ==============================================================================
+# INSTALL / UPDATE
+# ==============================================================================
 install_vscode() {
     draw_header
 
-    # --- STEP 0: CHECK CURRENT VERSION ---
     echo -e "${INFO}🔍 Checking current status...${RESET}"
     if command -v code &> /dev/null; then
         OLD_VER=$(code --no-sandbox --disable-gpu --version 2>/dev/null | head -n 1)
         echo -e "   ➡️  Current Version: ${C3}$OLD_VER${RESET}"
     else
         OLD_VER="None"
-        echo -e "   ➡️  Current Version: ${C2}Not Installed${RESET}"
+        echo -e "   ➡️  Not Installed${RESET}"
     fi
 
     echo -e "\n${INFO}⬇️  Starting Download...${RESET}"
-
-    # --- STEP 1: DOWNLOAD ---
     rm -f vscode_latest.deb
     wget -q --show-progress "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-arm64" -O vscode_latest.deb
 
     if [ ! -s vscode_latest.deb ]; then
-        echo -e "${ERROR}❌ ERROR: Download failed. Check internet connection.${RESET}"
-        exit 1
+        echo -e "${ERROR}❌ Download failed. Check internet connection.${RESET}"; exit 1
     fi
 
-    # --- STEP 2: EXTRACT ---
     echo -e "\n${INFO}📦 Extracting files...${RESET}"
     rm -rf vscode_temp
-    mkdir -p vscode_temp || { echo -e "${ERROR}❌ ERROR: Cannot create temp directory.${RESET}"; exit 1; }
-    cd vscode_temp || { echo -e "${ERROR}❌ ERROR: Cannot enter temp directory.${RESET}"; exit 1; }
+    mkdir -p vscode_temp || { echo -e "${ERROR}❌ Cannot create temp directory.${RESET}"; exit 1; }
+    cd vscode_temp || { echo -e "${ERROR}❌ Cannot enter temp directory.${RESET}"; exit 1; }
 
     ar x ../vscode_latest.deb
 
@@ -112,36 +261,27 @@ install_vscode() {
     elif [ -f data.tar.gz ]; then
         tar -xf data.tar.gz
     else
-        echo -e "${ERROR}❌ ERROR: Unknown archive format inside .deb${RESET}"
-        cd ..
-        rm -rf vscode_temp vscode_latest.deb
-        exit 1
+        echo -e "${ERROR}❌ Unknown archive format inside .deb${RESET}"
+        cd ..; rm -rf vscode_temp vscode_latest.deb; exit 1
     fi
 
-    # --- STEP 3: INSTALL ---
     echo -e "${INFO}📂 Installing to system...${RESET}"
     if [ -d usr ]; then
         sudo cp -rf usr/* /usr/
         sudo chmod -R 755 /usr/share/code
         echo -e "${SUCCESS}   ✅ Files copied successfully.${RESET}"
-
-        echo -e "${INFO}🔗 Linking command...${RESET}"
         sudo ln -sf /usr/share/code/bin/code /usr/bin/code
         echo -e "${SUCCESS}   ✅ Symlink created: /usr/bin/code${RESET}"
     else
-        echo -e "${ERROR}❌ ERROR: Extraction failed. 'usr' directory not found.${RESET}"
-        cd ..
-        rm -rf vscode_temp vscode_latest.deb
-        exit 1
+        echo -e "${ERROR}❌ Extraction failed. 'usr' directory not found.${RESET}"
+        cd ..; rm -rf vscode_temp vscode_latest.deb; exit 1
     fi
 
-    # --- STEP 4: CLEANUP ---
-    cd ..
-    rm -rf vscode_temp vscode_latest.deb
+    cd ..; rm -rf vscode_temp vscode_latest.deb
     echo -e "${SUCCESS}   ✅ Temp files cleaned.${RESET}"
 
-    # --- STEP 5: PATCH DESKTOP SHORTCUT ---
-    DESKTOP_FILE="/usr/share/applications/code.desktop"
+    # Desktop shortcut
+    local DESKTOP_FILE="/usr/share/applications/code.desktop"
     if [ -f "$DESKTOP_FILE" ]; then
         echo -e "\n${INFO}🔧 Patching Desktop Shortcut...${RESET}"
         sudo sed -i \
@@ -150,25 +290,27 @@ install_vscode() {
         echo -e "${SUCCESS}   ✅ Keyring & GPU crash fixed in shortcut.${RESET}"
     fi
 
-    # --- STEP 6: SMART SETTINGS MERGE ---
+    # === 3-LAYER SIGNATURE BYPASS ===
+    echo ""; patch_product_json
+    echo ""; install_vsce_sign_stub
+    echo ""; patch_shared_process_js
+
+    # settings.json
     echo -e "\n${INFO}⚙️  Configuring User Settings...${RESET}"
-    SETTINGS_FILE="$HOME/.config/Code/User/settings.json"
+    local SETTINGS_FILE="$HOME/.config/Code/User/settings.json"
     mkdir -p "$HOME/.config/Code/User"
 
     if [ -f "$SETTINGS_FILE" ]; then
         echo -e "${WARN}   ⚠️  Existing settings.json found. Merging required keys...${RESET}"
-
         merge_json_setting "$SETTINGS_FILE" "extensions.verifySignature"        "false"
         merge_json_setting "$SETTINGS_FILE" "settingsSync.keychain"             "false"
         merge_json_setting "$SETTINGS_FILE" "security.workspace.trust.enabled"  "false"
         merge_json_setting "$SETTINGS_FILE" "telemetry.telemetryLevel"          '"off"'
         merge_json_setting "$SETTINGS_FILE" "update.mode"                       '"manual"'
         merge_json_setting "$SETTINGS_FILE" "window.titleBarStyle"              '"custom"'
-
         echo -e "${SUCCESS}   ✅ Settings merged successfully (your config preserved).${RESET}"
     else
-        echo -e "${SUCCESS}   ✅ Creating optimized defaults for Termux...${RESET}"
-        cat <<EOF > "$SETTINGS_FILE"
+        cat > "$SETTINGS_FILE" <<'EOF'
 {
     "extensions.verifySignature": false,
     "settingsSync.keychain": false,
@@ -181,9 +323,9 @@ EOF
         echo -e "${SUCCESS}   ✅ settings.json created.${RESET}"
     fi
 
-    # --- STEP 7: PATCH argv.json (startup flags — fixes keyring + GPU at launch) ---
+    # argv.json
     echo -e "\n${INFO}🔧 Patching argv.json (startup flags)...${RESET}"
-    ARGV_FILE="$HOME/.vscode/argv.json"
+    local ARGV_FILE="$HOME/.vscode/argv.json"
     mkdir -p "$HOME/.vscode"
 
     if [ -f "$ARGV_FILE" ]; then
@@ -192,7 +334,7 @@ EOF
         merge_json_setting "$ARGV_FILE" "password-store"                '"basic"'
         echo -e "${SUCCESS}   ✅ argv.json patched.${RESET}"
     else
-        cat <<EOF > "$ARGV_FILE"
+        cat > "$ARGV_FILE" <<'EOF'
 {
     "disable-hardware-acceleration": true,
     "password-store": "basic"
@@ -201,7 +343,6 @@ EOF
         echo -e "${SUCCESS}   ✅ argv.json created.${RESET}"
     fi
 
-    # --- STEP 8: SUMMARY ---
     NEW_VER=$(code --no-sandbox --disable-gpu --version 2>/dev/null | head -n 1)
 
     echo -e "\n${C6}======================================================${RESET}"
@@ -210,9 +351,12 @@ EOF
     echo -e "   📂 Old Version : ${C1}${OLD_VER:-None}${RESET}"
     echo -e "   📂 New Version : ${C4}${NEW_VER:-Unknown}${RESET}"
     echo -e "${C6}------------------------------------------------------${RESET}"
-    echo -e "   ${C5}🔑 Extension signature verification : ${C4}DISABLED${RESET}"
-    echo -e "   ${C5}🖥️  GPU acceleration                 : ${C4}DISABLED${RESET}"
-    echo -e "   ${C5}🔒 Keyring / Password store          : ${C4}BASIC (no popup)${RESET}"
+    echo -e "   ${C5}🔑 product.json sig fields    : ${C4}${STATUS_PRODUCT}${RESET}"
+    echo -e "   ${C5}🔑 vsce-sign stub             : ${C4}${STATUS_STUB}${RESET}"
+    echo -e "   ${C5}🔑 sharedProcessMain.js patch : ${C4}${STATUS_SHAREDJS}${RESET}"
+    echo -e "   ${C5}🔑 settings.json verifySign   : ${C4}FALSE${RESET}"
+    echo -e "   ${C5}🖥️  GPU acceleration           : ${C4}DISABLED${RESET}"
+    echo -e "   ${C5}🔒 Keyring / password-store   : ${C4}BASIC (no popup)${RESET}"
     echo -e "${C6}======================================================${RESET}"
 
     if [ -n "$NEW_VER" ] && [ "$OLD_VER" = "$NEW_VER" ]; then
@@ -220,14 +364,14 @@ EOF
     elif [ -n "$NEW_VER" ]; then
         echo -e "${SUCCESS}   🚀 Update Successful!${RESET}"
     else
-        echo -e "${WARN}   ⚠️  Could not verify new version. Try: code --no-sandbox --version${RESET}"
+        echo -e "${WARN}   ⚠️  Could not verify version. Try: code --no-sandbox --version${RESET}"
     fi
     echo ""
 }
 
-# ==========================================================
-# FUNCTION: UNINSTALL
-# ==========================================================
+# ==============================================================================
+# UNINSTALL
+# ==============================================================================
 uninstall_vscode() {
     echo -e "\n${C1}======================================================${RESET}"
     echo -e "${C1}             ⚠️   UNINSTALL WARNING   ⚠️              ${RESET}"
@@ -235,33 +379,24 @@ uninstall_vscode() {
     echo -e "This will delete VS Code and ALL extensions/data."
     read -p "👉 Are you sure you want to proceed? (y/n): " confirm
 
-    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-        echo -e "${SUCCESS}🚫 Cancelled.${RESET}"
-        exit 0
-    fi
+    [[ "$confirm" != "y" && "$confirm" != "Y" ]] && { echo -e "${SUCCESS}🚫 Cancelled.${RESET}"; exit 0; }
 
     echo -e "\n${INFO}🧹 Cleaning up...${RESET}"
-
     sudo dpkg --remove --force-all code 2>/dev/null
     echo -e "   🗑️  Removed Package Entry"
-
     sudo rm -rf /usr/share/code /usr/bin/code
     echo -e "   🗑️  Deleted Application Files"
-
     sudo rm -f /usr/share/applications/code.desktop ~/Desktop/code.desktop
     echo -e "   🗑️  Removed Shortcuts"
-
     rm -rf ~/.vscode ~/.config/Code
     echo -e "   🗑️  Wiped User Data & Settings"
-
     sudo apt autoremove -y >/dev/null 2>&1
-
     echo -e "\n${SUCCESS}✅ VS Code has been completely removed.${RESET}"
 }
 
-# ==========================================================
-# MAIN LOGIC
-# ==========================================================
+# ==============================================================================
+# MAIN
+# ==============================================================================
 case "$choice" in
     1) install_vscode ;;
     2) uninstall_vscode ;;
